@@ -41,8 +41,8 @@ calling python.
 ### cbayes_create_process_datafile.py ###
 
 > Create a data file that works nicely with other cbayes scripts.  Can use
-> any machine in `cmpy.machines` that has NO default parameters.  This means
-> the process can be initiated using:
+> any machine in `cmpy.machines` that **has default parameters**.  This means
+> the process can be instantiated using:
 > 
 > em = cmpy.machines.ProcessName()
 

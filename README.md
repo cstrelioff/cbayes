@@ -7,26 +7,14 @@ Bayesian inference of unifilar hidden Markov models (uHMMs) and
 epsilon-machines with Computation Mechanics Python, aka
 [CMPy](http://cmpy.csc.ucdavis.edu/) easier.
 
-## Scripts ##
-
-### cbayes_create_process_datafile.py ###
-
-    Create a data file that works nicely with other cbayes scripts.  Can use
-    any machine in `cmpy.machines` that has NO default parameters.  This means
-    the process can be initiated using:
-
-    em = cmpy.machines.ProcessName()
-
-### cbayes_enumerate_AddtoDB.py ###
-
 ## Dependencies ##
 
-CMPy -- Developed at the 
+CMPy 
 
 ## Install ##
 
 Get the code from github in the usual manner.  In a suitable directory clone
-the respository using:
+the repository using:
 
     git clone git@github.com:cstrelioff/research.git
 
@@ -37,6 +25,8 @@ Install using:
 Or, for local install, when admin permission are not available:
 
     python setup.py install --user
+
+### Local Install Issues ###
 
 This command will install to .local/bin in the user home directory on Ubuntu.
 This location is not in the system path by default, so we add this location to
@@ -76,19 +66,13 @@ Turns out that an interactive login does not source `.bashrc`.  So, create a
 
 ## Scripts ##
 
-Modules/scripts included in this repository are:
+### cbayes_create_process_datafile.py ###
 
-### cbayes\_gabayes.py ###
+> Create a data file that works nicely with other cbayes scripts.  Can use
+> any machine in `cmpy.machines` that has NO default parameters.  This means
+> the process can be initiated using:
+> 
+> em = cmpy.machines.ProcessName()
 
-This evolves the epsilon-machine structure that best matches a provided data
-file.  Bayesian model comparison is applied, taking the place of fitness in a
-normal (GA) genetic algorithm.
-
-Get help using
-
-    cbayes_gabayes.py --help
-
-
-
-
+### cbayes_enumerate_AddtoDB.py ###
 

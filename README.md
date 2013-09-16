@@ -30,8 +30,10 @@ Or, for a local install, when administrator permissions are not available:
 
     python setup.py install --user
 
-If you have issue with the scripts when using the `--user` switch, consult the
-[local installation note](LOCALINSTALL.md).
+If you have issues with the scripts when using the `--user` switch, consult the
+[local installation note](LOCALINSTALL.md).  The scripts are designed to be run
+as system tools, allowing for execution from any directory without directly
+calling python.
 
 ## Scripts ##
 

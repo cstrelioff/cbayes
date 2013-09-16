@@ -1,4 +1,4 @@
-# cmpy_bayes modules #
+# cmpy_bayes #
 
 **Note:** Currently in heavy development.
 
@@ -9,20 +9,26 @@ epsilon-machines with Computation Mechanics Python, aka
 
 ## Dependencies ##
 
-CMPy 
+* [CMPy](http://cmpy.csc.ucdavis.edu/)
+
+CMPy should be installed with the --cython switch to allow for use of the
+enumeration library.
+
+CMPy has a variety of dependencies that are, by default, required to use these
+scripts.
 
 ## Install ##
 
 Get the code from github in the usual manner.  In a suitable directory clone
 the repository using:
 
-    git clone git@github.com:cstrelioff/research.git
+    git clone git@github.com:cstrelioff/cmpy_bayes.git
 
 Install using:
 
     sudo python setup.py install
 
-Or, for local install, when admin permission are not available:
+Or, for a local install, when administrator permissions are not available:
 
     python setup.py install --user
 

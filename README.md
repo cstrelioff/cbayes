@@ -12,7 +12,8 @@ epsilon-machines with Computation Mechanics Python, aka
 * [CMPy](http://cmpy.csc.ucdavis.edu/)
 
 CMPy should be installed with the `--cython` switch to allow for use of the
-enumeration library.  Also, note that CMPy has a quite a few dependencies that
+enumeration library.  Also, note that CMPy has a quite a few
+[dependencies](http://cmpy.csc.ucdavis.edu/installation.html) that
 are required to use these scripts.
 
 ## Installation ##

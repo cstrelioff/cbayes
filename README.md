@@ -46,7 +46,7 @@ calling python.
 > 
 > em = cmpy.machines.ProcessName()
 
-### cbayes_enumerate_AddtoDB.py ###
+### cbayes_enumerate_AddToDB.py ###
 
 
 > Use the CMPy enumeration method to test all specified uHMM topologies against
@@ -56,7 +56,7 @@ calling python.
 
 ### cbayes_enumerate_PriorAddToDB.py ###
 
-> This script is similar to cbayes_enumerate_AddtoDB.py except that the focus is
+> This script is similar to cbayes_enumerate_AddToDB.py except that the focus is
 > on the prior over models instead of the posterior.  The objective is to
 > understand what the setting for hyper-parameters of priors at various levels
 > say about stated a priori assumptions.  The resulting directory can be used for

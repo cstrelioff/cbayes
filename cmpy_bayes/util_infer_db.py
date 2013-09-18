@@ -144,7 +144,7 @@ def sample_map_star(a_b):
     return sample_map(*a_b)
 
 def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
-        csize=10000):
+        csize=1000):
     """A fuction to add new topologies to a database of pickled InferEM
     instances.  If the passed directory does not exist, it will be created.
 
@@ -160,7 +160,7 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
     iter_topologies : iterator of MealyHMM or RecurrentEpsilonMachines
         An iterator with candidate topologies.
     csize : int
-        Chunk size for the mulit-threading.
+        Chunk size for the multi-threading.
 
     Returns
     -------
@@ -249,7 +249,7 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
 
     return (summary_str, inferdir)
 
-def calc_probs_beta_db(dbdir, inferemdir, beta, penalty, csize=10000):
+def calc_probs_beta_db(dbdir, inferemdir, beta, penalty, csize=1000):
     """A function to calculate the probabilities for a directory of pickled
     InferEM instances.
 
@@ -264,7 +264,7 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty, csize=10000):
         Strength of exponential penalty.
     penalty : str
         Penalty can be for: num_states or num_edges.
-    csize : int [default 100]
+    csize : int [default 1000]
         Chunksize for multiprocessing iterator.
     
     Returns
@@ -466,7 +466,8 @@ def sample_db(dbdir, inferemdir, modelprobs, num_sample):
     #  http://stackoverflow.com/questions/5442910/
     #         python-multiprocessing-pool-map-for-multiple-arguments
     #
-    csize = num_sample/numCPUs
+    # limit chunksize to 1000
+    csize = min(1000, num_sample/numCPUs)
     args = [file_sampler, inferdir, sampledir]
     for snum in pool.imap(sample_map_star, 
                           itertools.izip(iter_snum,
@@ -487,7 +488,7 @@ def sample_db(dbdir, inferemdir, modelprobs, num_sample):
 
     return summary_str
 
-def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=10000):
+def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
     """A function to add new topologies to a database of pickled InferEM
     instances.  Data is ignored and only settings for prior(s) is considered.
 

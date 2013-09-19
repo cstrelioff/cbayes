@@ -2,9 +2,6 @@
 
 """cbayes_enumerate_CalcProbs.py
 
-Christoper C. Strelioff
-chris.strelioff@gmail.com
-
 This script processes the output of cbayes_enumerate_AddToDB.py or
 cbayes_enumerate_PriorAddToDB.py scripts.  The pickled instances of the InferEM
 class are use to calculate the prior, or posterior, probabilities for each of

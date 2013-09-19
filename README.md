@@ -41,7 +41,7 @@ calling python.
 All of these scripts should install as system scripts, making use from the
 command line easy.  To get help for a script, type
 
-    **scriptname** --help
+    scriptname --help
 
 ### cbayes_create_process_datafile.py ###
 

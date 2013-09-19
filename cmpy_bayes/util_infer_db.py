@@ -7,6 +7,7 @@ chris.strelioff@gmail.com
 from __future__ import absolute_import
 from __future__ import division
 
+import numpy
 from multiprocessing import Pool, cpu_count
 import itertools
 import datetime
@@ -20,6 +21,8 @@ except:
 import cmpy
 from cmpy.math import log, logaddexp
 import cmpy.inference.bayesianem as cmbayes
+
+from .util_general import read_sample_dir
 
 def create_sample_summary_file(db_dir, sample_dir):
     """Create a file with properties of sample machines from prior or
@@ -44,14 +47,11 @@ def create_sample_summary_file(db_dir, sample_dir):
     temp = ["Filename",
             "Machine_ID",
             "Recurrent_eM",
-            "Excess_Entropy-E",
-            "Statistical_Complexity-Cmu",
-            "Crypticity-chi",
-            "Entropy_Rate-hmu",
-            "Gauge_Information-phi",
-            "Oracular_Information-zeta",
+            "State_Entropy",
+            "Entropy_Rate",
             "Cryptic_Order",
             "Markov_Order",
+            "Number_Edges",
             "Number_States\n"
             ]        
     fout.write(' '.join(temp))
@@ -67,52 +67,45 @@ def create_sample_summary_file(db_dir, sample_dir):
         em = pickle.load(f_em)
         f_em.close()
         
-        # estimates from machine, non-L-dependent
-        try:
-            ee_est = em.excess_entropy()
-        except:
-            ee_est = numpy.nan
+        # state entropy, Cmu if epsilon-machine
         try:
             cmu_est = em.statistical_complexity()
         except:
             cmu_est = em.stationary_entropy()
 
+        # entropy rate
         hmu_est = em.entropy_rate()
         
-        # number of nodes, orders 
+        # number of nodes, edges
         num_state = len(em.nodes())
-        c_ord = em.cryptic_order()
+        num_edges = len(em.edges())
+
+        # Markov, cryptic orders
+        try:
+            c_ord = em.cryptic_order()
+        except:
+            c_ord = numpy.nan
         try:
             m_ord = em.markov_order()
         except:
-            # must be a MealyHMM
             m_ord = numpy.nan
         
-        # L-dependent values
-        cmech=CMechQuantities(em)
-        temp = cmech.calculate(['phi', 'zeta', 'chi'], 20)
-        # get last (best value) for each quantity
-        phi_est = correct_neg_zero(temp[0][-1])  # gauge information
-        zeta_est = correct_neg_zero(temp[1][-1]) # oracular information
-        chi_est = correct_neg_zero(temp[2][-1])   # crypticity
-       
-        # get model name and type
+        # get model type
         recurr_em = 0
         if type(em) == cmpy.machines.RecurrentEpsilonMachine:
             recurr_em = 1
+
+        # get model id/name
         em_id = str(em).split(':')[-1].strip()
 
         temp = ["{fn:s}".format(fn=f),
                 "{mn:s}".format(mn=em_id),
                 "{id:d}".format(id=recurr_em),
-                "{ee:.15e}".format(ee=ee_est),
                 "{cmu:.15e}".format(cmu=cmu_est),
-                "{chi:.15e}".format(chi=chi_est),
                 "{hmu:.15e}".format(hmu=hmu_est),
-                "{phi:.15e}".format(phi=phi_est),
-                "{zeta:.15e}".format(zeta=zeta_est),
                 "{co}".format(co=c_ord),
                 "{mo}".format(mo=m_ord),
+                "{ne}".format(ne=num_edges),
                 "{ns}\n".format(ns=num_state)
             ]
         

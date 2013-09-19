@@ -2,9 +2,6 @@
 
 """cbayes_create_process_datafile.py
 
-Christoper C. Strelioff
-chris.strelioff@gmail.com
-
 Create a data file that works nicely with other cbayes scripts.  Can use
 any machine in `cmpy.machines` that **has default parameters**.  This means
 the process can be instantiated using:

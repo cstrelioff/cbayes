@@ -62,3 +62,22 @@ calling python.
 > say about stated a priori assumptions.  The resulting directory can be used for
 > sampling from the prior over model topologies.
 
+### cbayes_enumerate_Sample.py ###
+
+This script generates samples from the prior, or posterior, over model
+topologies using the output from other scripts.  Create pickled `InferEM`
+instances using
+
+* `cbayes_enumerate_AddToDB.py`
+or
+* `cbayes_enumerate_PriorAddToDB.py`
+
+A dictionary of model probabilities can then be created using output from the
+above scripts and running
+
+* `cbayes_enumerate_CalcProbs.py`
+
+This script uses these outputs to generate sample epsilon-machines or uHMMs and
+writes pickled instances of the machines to a directory in the DB.
+
+

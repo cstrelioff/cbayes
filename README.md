@@ -85,4 +85,10 @@ above scripts and running
 This script uses these outputs to generate sample epsilon-machines or uHMMs and
 writes pickled instances of the machines to a directory in the DB.
 
+### cbayes_enumerate_ProcessSamples.py ###
+
+This script processes the samples generated using `cbayes_enumerate_Sample.py`.
+A single file is created with basic information about each sampled machine
+including machine id, number of states, number of edges, Cmu, hmu etc. See 
+`cmpy_bayes.util_infer_db.py` for details.
 

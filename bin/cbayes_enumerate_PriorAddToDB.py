@@ -2,9 +2,6 @@
 
 """cbayes_enumerate_PriorAddToDB.py
 
-Christoper C. Strelioff
-chris.strelioff@gmail.com
-
 This script is similar to cbayes_enumerate_AddToDB.py except that the focus is
 on the prior over models instead of the posterior.  The objective is to
 understand what the setting for hyper-parameters of priors at various levels

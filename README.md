@@ -90,6 +90,6 @@ writes pickled instances of the machines to a directory in the DB.
 This script processes the samples generated using `cbayes_enumerate_Sample.py`.
 A single file is created with basic information about each sampled machine
 including machine id, number of states, number of edges, Cmu, hmu etc. See the 
-function `create_sample_summary_file' in
+function `create_sample_summary_file` in
 [cmpy_bayes.util_infer_db.py](cmpy_bayes/util_infer_db.py) for details.
 

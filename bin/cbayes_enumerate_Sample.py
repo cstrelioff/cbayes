@@ -15,8 +15,8 @@ above scripts and running
 
 * `cbayes_enumerate_CalcProbs.py`
 
-This uses these outputs to generate sample epsilon-machines or uHMMs and writes
-pickled instances of the machines to a directory in the DB.
+This script uses these outputs to generate sample epsilon-machines or uHMMs and
+writes pickled instances of the machines to a directory in the DB.
 
 """
 from __future__ import division

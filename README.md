@@ -93,3 +93,18 @@ including machine id, number of states, number of edges, Cmu, hmu etc. See the
 function `create_sample_summary_file` in
 [cmpy_bayes.util_infer_db.py](cmpy_bayes/util_infer_db.py) for details.
 
+### cbayes_bash_enumerate_convergence.py ###
+
+Create a bash script to run a sequence of `cbayes_enumerate_` scripts on a
+specified data file.  In this case, the focus is on convergence of inference
+by considering subsegments, using the single data file, of increasing length.
+
+### cbayes_slurm_enumerate_convergence.py ###
+
+Create a slurm script to run a sequence of `cbayes_enumerate_` scripts on a
+specified data file.  In this case, the focus is on convergence of inference
+by considering subsegments, using the single data file, of increasing length.
+
+This version of the convergence analysis is designed for bigger jobs, using
+slurm on a cluster.  For small jobs, try the bash version.
+

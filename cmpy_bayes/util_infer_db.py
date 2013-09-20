@@ -49,8 +49,6 @@ def create_sample_summary_file(db_dir, sample_dir):
             "Recurrent_eM",
             "State_Entropy",
             "Entropy_Rate",
-            "Cryptic_Order",
-            "Markov_Order",
             "Number_Edges",
             "Number_States\n"
             ]        
@@ -80,16 +78,6 @@ def create_sample_summary_file(db_dir, sample_dir):
         num_state = len(em.nodes())
         num_edges = len(em.edges())
 
-        # Markov, cryptic orders
-        try:
-            c_ord = em.cryptic_order()
-        except:
-            c_ord = numpy.nan
-        try:
-            m_ord = em.markov_order()
-        except:
-            m_ord = numpy.nan
-        
         # get model type
         recurr_em = 0
         if type(em) == cmpy.machines.RecurrentEpsilonMachine:
@@ -103,8 +91,6 @@ def create_sample_summary_file(db_dir, sample_dir):
                 "{id:d}".format(id=recurr_em),
                 "{cmu:.15e}".format(cmu=cmu_est),
                 "{hmu:.15e}".format(hmu=hmu_est),
-                "{co}".format(co=c_ord),
-                "{mo}".format(mo=m_ord),
                 "{ne}".format(ne=num_edges),
                 "{ns}\n".format(ns=num_state)
             ]

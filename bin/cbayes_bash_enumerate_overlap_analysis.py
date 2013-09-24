@@ -30,7 +30,7 @@ def create_parser():
     """
     desc_str = (
         """Run set of enumerative inferences on a single data file to look at
-        convergence properties.
+        stationarity properties by considering multiple, overlapping segments.
         
         """
         )
@@ -77,7 +77,12 @@ def create_parser():
             required = True
             )
     parser.add_argument('--topological_eMs',
-            help = 'include only topological eM structures',
+            help = 'include only topological eM structures?',
+            action = 'store_true',
+            required = False
+            )
+    parser.add_argument('--include_prior',
+            help = 'generate prior and samples from prior?',
             action = 'store_true',
             required = False
             )
@@ -102,14 +107,16 @@ def report_args(args):
     arg_list.append("-f  : Data file >> {:s}\n".format(args.file))
     arg_list.append("-db : Database directory "
             ">> {:s}\n".format(args.database_directory))
+    arg_list.append("--include_prior : "
+           "include analysis of prior? >> {:s}\n".format(str(args.include_prior)))
+    arg_list.append("--topological_eMs : "
+           "topological eMs only? >> {:s}\n".format(str(args.topological_eMs)))
     arg_list.append("-a  : Alphabet size >> {:d}\n".format(args.alphabet_size))
     arg_list.append("-n  : Number of states "
             ">> {:s}\n".format(args.number_of_states))
     arg_list.append("--beta  : Penalty size >> {:f}\n".format(args.beta))
     arg_list.append("-penalty : Type of penalty "
             ">> {:s}\n".format(args.penalty))
-    arg_list.append("--topological_eMs : "
-           "topological eMs only? >> {:s}\n".format(str(args.topological_eMs)))
     arg_list.append("-nss : Number of subsamples to consider >> "
                 "{:d}\n".format(args.number_subsamples))
     arg_list.append("-ns : Number of machines to sample "
@@ -142,51 +149,52 @@ def write_scripts(args):
     header_list.append("begin=\"$(date +%s)\"\n\n")
     f.write(''.join(header_list))
 
-    ## add prior to script - analyze machines, prior
-    prior_list = []
-    prior_list.append("##\n")
-    prior_list.append("## PRIOR\n")
-    prior_list.append("echo \">> Add PRIOR models to DB: `date`\"\n")
-    # single line
-    prior_list.append("cbayes_enumerate_PriorAddToDB.py")
-    prior_list.append(" -db {}".format(args.database_directory))
-    prior_list.append(" -a {} ".format(args.alphabet_size))
-    prior_list.append(" -n {}".format(args.number_of_states))
-    if args.topological_eMs:
-        prior_list.append(" --topological_eMs\n")
-    else:
-        prior_list.append("\n")
-    prior_list.append("echo\n")
-    prior_list.append("echo \">> Calculate PRIOR model "
-            "probabilities: `date`\"\n")
-    
-    # single line - calculate probability for machines using prior
-    prior_list.append("cbayes_enumerate_CalcProbs.py")
-    prior_list.append(" -db {}".format(args.database_directory))
-    prior_list.append(" -idir inferEM_0-0") 
-    prior_list.append(" --beta {}".format(args.beta)) 
-    prior_list.append(" -p {}\n".format(args.penalty))
-    prior_list.append("echo\n")
-    prior_list.append("echo \">> Sample PRIOR machines: `date`\"\n")
-    
-    # single line - sample machines using prior
-    prior_list.append("cbayes_enumerate_Sample.py")
-    prior_list.append(" -db {}".format(args.database_directory))
-    prior_list.append(" -idir inferEM_0-0")
-    prior_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
-    prior_list.append("_penalty-{}.pickle".format(args.penalty))
-    prior_list.append(" -ns {}\n".format(args.number_samples))
-    prior_list.append("echo\n")
-    prior_list.append("echo \">> Process sampled PRIOR machines: `date`\"\n")
+    if args.include_prior:
+        ## add prior to script - analyze machines, prior
+        prior_list = []
+        prior_list.append("##\n")
+        prior_list.append("## PRIOR\n")
+        prior_list.append("echo \">> Add PRIOR models to DB: `date`\"\n")
+        # single line
+        prior_list.append("cbayes_enumerate_PriorAddToDB.py")
+        prior_list.append(" -db {}".format(args.database_directory))
+        prior_list.append(" -a {} ".format(args.alphabet_size))
+        prior_list.append(" -n {}".format(args.number_of_states))
+        if args.topological_eMs:
+            prior_list.append(" --topological_eMs\n")
+        else:
+            prior_list.append("\n")
+        prior_list.append("echo\n")
+        prior_list.append("echo \">> Calculate PRIOR model "
+                "probabilities: `date`\"\n")
+        
+        # single line - calculate probability for machines using prior
+        prior_list.append("cbayes_enumerate_CalcProbs.py")
+        prior_list.append(" -db {}".format(args.database_directory))
+        prior_list.append(" -idir inferEM_0-0") 
+        prior_list.append(" --beta {}".format(args.beta)) 
+        prior_list.append(" -p {}\n".format(args.penalty))
+        prior_list.append("echo\n")
+        prior_list.append("echo \">> Sample PRIOR machines: `date`\"\n")
+        
+        # single line - sample machines using prior
+        prior_list.append("cbayes_enumerate_Sample.py")
+        prior_list.append(" -db {}".format(args.database_directory))
+        prior_list.append(" -idir inferEM_0-0")
+        prior_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
+        prior_list.append("_penalty-{}.pickle".format(args.penalty))
+        prior_list.append(" -ns {}\n".format(args.number_samples))
+        prior_list.append("echo\n")
+        prior_list.append("echo \">> Process sampled PRIOR machines: `date`\"\n")
 
-    # single line - process sampled machines
-    prior_list.append("cbayes_enumerate_ProcessSamples.py")
-    prior_list.append(" -db {}".format(args.database_directory))
-    prior_list.append(" -sdir samples_0-0")
-    prior_list.append("_beta-{:.6f}".format(args.beta))
-    prior_list.append("_penalty-{}\n".format(args.penalty))
-    prior_list.append("echo\n")
-    f.write(''.join(prior_list))
+        # single line - process sampled machines
+        prior_list.append("cbayes_enumerate_ProcessSamples.py")
+        prior_list.append(" -db {}".format(args.database_directory))
+        prior_list.append(" -sdir samples_0-0")
+        prior_list.append("_beta-{:.6f}".format(args.beta))
+        prior_list.append("_penalty-{}\n".format(args.penalty))
+        prior_list.append("echo\n")
+        f.write(''.join(prior_list))
     
     # read data to get data length
     data = read_datafile(args.file)

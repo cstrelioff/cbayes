@@ -10,6 +10,8 @@ total data series return the same model at different points -- reflecting a
 single, static model topology is appropriate for the complete data series.
 
 """
+from __future__ import division
+
 import os
 import argparse
 import numpy
@@ -203,7 +205,7 @@ def write_scripts(args):
     
     ## find the subsample division points
     div_size = int((2*data_len)/(args.number_subsamples+1))
-    div_step = int(div_size/2.)
+    div_step = int(div_size/2)
     data_divisions = [t for t in range(0, data_len+1, div_step)]
 
     ## full data series
@@ -272,7 +274,9 @@ def write_scripts(args):
         ssl_list = []
         ## Add models to DB for this subsample
         ssl_list.append("##\n")
-        ssl_list.append("## SUBSAMPLE: {} -- {}\n".format(div_start, div_end))
+        ssl_list.append("## {} SUBSAMPLE: {} -- {}\n".format(div_num+1,
+                                                             div_start,
+                                                             div_end))
         ssl_list.append("echo \">> Add models, subsample")
         ssl_list.append(" length {}, to DB: `date`\"\n".format(div_size))
         # single line

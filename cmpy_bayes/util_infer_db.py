@@ -107,31 +107,23 @@ def infer_map(machine, data):
     
     Return:
     
-    0 : not valid
-    1 : valid, file written
-    2 : already exists
+    model_info: dict
+        Dictionary with machine name and log evidence for data series provided.
     
     """
-    # create potential file name
-    fname = 'inferEM_%s.pickle' % str(machine)
-    
-    # check for existence, skip if exists
-    if os.path.exists(fname):
-        return 2
-    
     # pass to InferEM
     infer_temp = cmbayes.InferEM(machine,data)
-    
-    if infer_temp.check_valid():
-        # save if topology has non-zero probability
-        f = open(fname, 'wb')
-        pickle.dump(infer_temp,f)
-        f.close()
-        return 1
 
+    if infer_temp.check_valid():
+        # topology has non-zero probability -- at least one valid path
+        model_info = {'id':str(machine), 
+                'log_evidence': infer_temp.log_evidence()}
+        return model_info
     else:
         # machine not possible for data
-        return 0
+        model_info = {'id':str(machine), 
+                'log_evidence': -numpy.inf}
+        return model_info
 
 def infer_map_star(a_b):
     """Convert `infer_map([1,2])` to `infer_map(1,2)` call."""
@@ -294,34 +286,40 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
     summary.append(" -- start time   : {}\n".format(script_start))
 
     # run with imap to get iterator execution
+    evidence_dict = {}
     num_tried = 0
     num_valid = 0
-    num_exist = 0
-    
+
     #
     # use imap with some manipulation to take multiple arguments
     #  http://stackoverflow.com/questions/5442910/
     #         python-multiprocessing-pool-map-for-multiple-arguments
     #
-    for em in pool.imap(infer_map_star, itertools.izip(iter_topologies,
+    for m_info in pool.imap(infer_map_star, itertools.izip(iter_topologies,
                                                        itertools.repeat(data)),
                                                        chunksize=csize):
         # count number tried
         num_tried += 1
         
-        # 
-        if em == 1:
+        # m_info format: {'id': str, 'log_evidence': float}
+        if m_info['log_evidence'] == -numpy.inf:
+            # no valid for this data and machine -- do not record
+            pass
+        else:
             num_valid += 1
-        elif em == 2:
-            num_exist += 1
-            
+            evidence_dict[m_info['id']] = m_info['log_evidence']
+    
+    # pickle the evidence dictionary
+    f = open('evidence_dictionary.pickle', 'wb')
+    pickle.dump(evidence_dict,f)
+    f.close()
+
     script_end = datetime.datetime.now()
     summary.append(" -- end time     : {}\n".format(script_end))
     time_diff = str(script_end-script_start)
     summary.append(" -- compute time : {}\n\n".format(time_diff))
-    summary.append(" --  {} valid of {} attempted "
-                   "({} already existed)\n".format(num_valid, num_tried,
-                                                 num_exist))
+    summary.append(" --  {} valid of {} attempted\n".format(num_valid,
+                                                            num_tried))
     
     summary_str = ''.join(summary)
 

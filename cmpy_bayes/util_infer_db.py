@@ -107,23 +107,21 @@ def infer_map(machine, data):
     
     Return:
     
-    model_info: dict
-        Dictionary with machine name and log evidence for data series provided.
+    (mname, minfo): tuple
+        Tuple with machine name `mname` and dictionary `minfo` containing
+        `log_evidence` for data series provided as well as the number of
+        `nodes` and `edges` for the machine.
     
     """
     # pass to InferEM
     infer_temp = cmbayes.InferEM(machine,data)
 
-    if infer_temp.check_valid():
-        # topology has non-zero probability -- at least one valid path
-        model_info = {'id':str(machine), 
-                'log_evidence': infer_temp.log_evidence()}
-        return model_info
-    else:
-        # machine not possible for data
-        model_info = {'id':str(machine), 
-                'log_evidence': -numpy.inf}
-        return model_info
+    # extract machine name and other information
+    model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
+                                'nodes': len(machine.nodes()),
+                                'edges': len(machine.edges())})
+    
+    return model_info
 
 def infer_map_star(a_b):
     """Convert `infer_map([1,2])` to `infer_map(1,2)` call."""
@@ -218,8 +216,9 @@ def sample_map_star(a_b):
 
 def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
         csize=1000):
-    """A fuction to add new topologies to a database of pickled InferEM
-    instances.  If the passed directory does not exist, it will be created.
+    """A fuction to add new topologies to a database consisting of a pickled
+    dictionary with model id and evidence value for provided data.  If the
+    passed directory does not exist, it will be created.
 
     Parameters
     ----------
@@ -247,8 +246,8 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
 
     # check data
     if (data == None) or (dbdir == None) or (iter_topologies == None):
-        exit("""
-        Must pass data, database directiory and iterator of
+        raise Exception("""
+        Must pass data, database directory and iterator of
         topologies to be considered.
         """)
     
@@ -295,31 +294,57 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
     #  http://stackoverflow.com/questions/5442910/
     #         python-multiprocessing-pool-map-for-multiple-arguments
     #
-    for m_info in pool.imap(infer_map_star, itertools.izip(iter_topologies,
+    for mname,minfo in pool.imap(infer_map_star, itertools.izip(iter_topologies,
                                                        itertools.repeat(data)),
                                                        chunksize=csize):
         # count number tried
         num_tried += 1
         
         # m_info format: {'id': str, 'log_evidence': float}
-        if m_info['log_evidence'] == -numpy.inf:
-            # no valid for this data and machine -- do not record
-            pass
+        if minfo['log_evidence'] == -numpy.inf:
+            # no valid for this data and machine, record zero probability
+            evidence_dict[mname] = minfo
         else:
             num_valid += 1
-            evidence_dict[m_info['id']] = m_info['log_evidence']
-    
-    # pickle the evidence dictionary
-    f = open('evidence_dictionary.pickle', 'wb')
-    pickle.dump(evidence_dict,f)
-    f.close()
+            evidence_dict[mname] = minfo
 
+    # check for existing dicionary
+    num_existed = 0
+    if os.path.isfile('evidence_dictionary.pickle'):
+        summary.append(" ** evidence_dictionary.pickle already exists!\n")
+        summary.append("   ** only adding new models.\n")
+        summary.append("   ** existing enteries will NOT be modified.\n")
+
+        # load existing file
+        f = open('evidence_dictionary.pickle', 'rb')
+        evidence_previous = pickle.load(f)
+        f.close()
+
+        # parse new results
+        for mid, mid_evid in evidence_dict.items():
+            if evidence_previous.has_key(mid):
+                # already exists
+                num_existed += 1
+            else:
+                # new entry, add
+                evidence_previous[mid] = mid_evid
+
+        # pickle the evidence dictionary, new and old results
+        f = open('evidence_dictionary.pickle', 'wb')
+        pickle.dump(evidence_previous,f)
+        f.close()
+    else:
+        # pickle the evidence dictionary, only new results
+        f = open('evidence_dictionary.pickle', 'wb')
+        pickle.dump(evidence_dict,f)
+        f.close()
+    
     script_end = datetime.datetime.now()
     summary.append(" -- end time     : {}\n".format(script_end))
     time_diff = str(script_end-script_start)
     summary.append(" -- compute time : {}\n\n".format(time_diff))
-    summary.append(" --  {} valid of {} attempted\n".format(num_valid,
-                                                            num_tried))
+    summary.append(" --  {} valid of {} attempted "
+            "({} already existed)\n".format(num_valid, num_tried, num_existed))
     
     summary_str = ''.join(summary)
 
@@ -328,9 +353,9 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
 
     return (summary_str, inferdir)
 
-def calc_probs_beta_db(dbdir, inferemdir, beta, penalty, csize=1000):
-    """A function to calculate the probabilities for a directory of pickled
-    InferEM instances.
+def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
+    """A function to calculate the probabilities for a pickled dictionary of
+    model evidence values.
 
     Parameters
     ----------
@@ -343,8 +368,6 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty, csize=1000):
         Strength of exponential penalty.
     penalty : str
         Penalty can be for: num_states or num_edges.
-    csize : int [default 1000]
-        Chunksize for multiprocessing iterator.
     
     Returns
     -------
@@ -374,37 +397,17 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty, csize=1000):
     ftemp = "modelprobs_beta-{:f}_penalty-{:s}.pickle".format(beta, penalty)
     fname = os.path.join(inferdir, ftemp)
     if os.path.exists(fname):
-        exit('\nOutput file %s exists!\n' % fname)
+        raise Exception("\nOutput file {} exists!\n".format(fname))
 
     # add to summary list
     summary.append("* using DB: {}\n".format(dbdir))
     summary.append("  - subdir: {}\n\n".format(inferdir))
-
-    # find number of processes possible on machine
-    numCPUs = cpu_count()
-    summary.append("* Starting pool with {} processes\n".format(numCPUs))
-
-    # start a pool with this number of processes
-    pool = Pool(processes=numCPUs)
     
     # start inference...
     script_start = datetime.datetime.now()
     summary.append(" -- start time   : {}\n".format(script_start))
+   
     
-    # define iterator fuction for existing files
-    def iter_inferem(currdir):
-        for f in os.listdir(currdir):
-            if f.startswith('inferEM') and f.endswith('.pickle'):
-                yield os.path.join(inferdir, f)
-    
-    # create instance for inferEM directory
-    iter_inferEM = iter_inferem(inferdir)
-    
-    #
-    # use imap with some manipulation to take multiple arguments
-    #  http://stackoverflow.com/questions/5442910/
-    #         python-multiprocessing-pool-map-for-multiple-arguments
-    #
     log_evidence_total = log(0)
     log_evidence = {}
     for (emfile, log_ev) in pool.imap(model_probs_factor_star, 

@@ -374,7 +374,6 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
     (summary_str, model_probabilities) : (str, dict)
         A summary of function operations and a dictionary containing model
         probabilities.
-
     """
     summary = []
 
@@ -406,22 +405,25 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
     # start inference...
     script_start = datetime.datetime.now()
     summary.append(" -- start time   : {}\n".format(script_start))
-   
+
+    # open evidence dictionary from disk
+    fevi = open(os.path.join(inferdir, "evidence_dictionary.pickle"), 'rb')
+    evidence_dict = pickle.load(fevi)
+    fevi.close()
     
+    # process log evidence terms
     log_evidence_total = log(0)
     log_evidence = {}
-    for (emfile, log_ev) in pool.imap(model_probs_factor_star, 
-                                     itertools.izip(iter_inferEM,
-                                            itertools.repeat([beta,penalty])), 
-                                     chunksize=csize):
-        
-        # save filename and log evidence
-        log_evidence[emfile] = log_ev
-        log_evidence_total = logaddexp(log_evidence_total,log_ev)
-    
-    pool.close()
-    pool.join()
+    for mname, minfo in evidence_dict.items():
+        # find penalty type and amount
+        if penalty == 'num_states':
+            penalty_term = minfo['nodes']
+        elif penalty == 'num_edges':
+            penalty_term = minfo['edges']
 
+        log_evidence[mname] = minfo['log_evidence'] - beta*penalty_term
+        log_evidence_total = logaddexp(log_evidence_total,log_evidence[mname])
+    
     # calculate probabilities
     model_probabilities = {}
     for em in log_evidence.keys():

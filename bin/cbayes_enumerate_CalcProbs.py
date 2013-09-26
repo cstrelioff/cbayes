@@ -120,9 +120,14 @@ def main():
     f.write('\n*** end: Calculate Model Probabilities***\n')
     f.close()
     
-    print '\nTop 10 machines'
+    print summary_str
+    print "Top 10 machines"
+    print "\n{:>15s} {:>15s} {:>15s}".format('Model', 'Prob',
+                                          'Cumm Prob')
+    cumm_pr = 0.
     for eM in sorted(model_probs,key=model_probs.get, reverse=True)[0:10]:
-        print '%30s %1.10e' % (eM, model_probs[eM])
+        cumm_pr += model_probs[eM]
+        print "{:>15s} {:>15e} {:>15e}".format(eM, model_probs[eM], cumm_pr)
     
 if __name__ == '__main__':
     main()

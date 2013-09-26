@@ -21,6 +21,7 @@ except:
 import cmpy
 from cmpy.math import log, logaddexp
 import cmpy.inference.bayesianem as cmbayes
+import cmpy.orderlygen.pyicdfa as pyidcdfa
 
 from .util_general import read_sample_dir
 
@@ -178,25 +179,46 @@ def sample_map(sample_num, args):
         Used to pass sampler and outdir.
 
     """
-    sampler = args[0]
-    inputdir = args[1]
-    outdir = args[2]
+    data = args[0]
+    sampler = args[1]
+    inputdir = args[2]
+    outdir = args[3]
 
     # create file name
     fname = "sample{:05d}.pickle".format(sample_num)
 
-    # sample a InferEM filename
-    sample_file = sampler()
+    # sample a modelname
+    sample_mname = sampler()
     
-    # load the InferEM instance
+    # create filename for sampled model name
+    sample_file = ''.join(['inferEM_', sample_mname, '.pickle'])
     inferem_file = os.path.join(inputdir, sample_file)
 
+    # if exists, load.  otherwise create and save
     if os.path.exists(inferem_file):
+        # pickled inferEM exists
         f = open(inferem_file, 'r')
         inferem_instance = pickle.load(f)
         f.close()
     else:
-        raise Exception("Could not load {}".format(inferem_file))
+        # pickled inferEM does not exist, create
+        # - number of states
+        n = int(sample_mname.split('_')[0][1:])
+        # - alphabet size
+        k =  int(sample_mname.split('_')[1][1:])
+        # - id
+        id =  int(sample_mname.split('_')[2][2:])
+
+        # get machine topology
+        machine = pyidcdfa.int_to_machine(id, n, k)
+
+        # generate inferEM instance
+        inferem_instance = cmbayes.InferEM(machine, data)
+
+        # write pickled instance for later use
+        f = open(inferem_file, 'w')
+        pickle.dump(inferem_instance, f)
+        f.close()
    
     # sample machine (also returns start node, not needed)
     _, em_sample = inferem_instance.generate_sample()
@@ -448,13 +470,14 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
     return (summary_str, model_probabilities)
 
 
-def sample_db(dbdir, inferemdir, modelprobs, num_sample):
+def sample_db(data, dbdir, inferemdir, modelprobs, num_sample):
     """A function to generate samples from the prior or posterior over model
     topologies.
 
     Parameters
     ----------
-
+    data : list
+        The data used for inference.
     dbdir : str
         Base directory for the database (directory).
     inferemdir : str
@@ -552,7 +575,7 @@ def sample_db(dbdir, inferemdir, modelprobs, num_sample):
     #
     # limit chunksize to 1000
     csize = min(1000, num_sample/numCPUs)
-    args = [file_sampler, inferdir, sampledir]
+    args = [data, file_sampler, inferdir, sampledir]
     for snum in pool.imap(sample_map_star, 
                           itertools.izip(iter_snum,
                                          itertools.repeat(args)), 

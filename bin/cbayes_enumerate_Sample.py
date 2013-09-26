@@ -27,6 +27,7 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
+from cmpy_bayes import read_datafile
 from cmpy_bayes import check_positive_float
 from cmpy_bayes import sample_db
 
@@ -45,6 +46,7 @@ def report_args(args):
     arg_list =[]
 
     arg_list.append("SETTINGS:\n")
+    arg_list.append("-f  : Data file >> {:s}\n".format(args.file))
     arg_list.append("-db : Database root directory "
             ">> {:s}\n".format(args.database_directory))
     arg_list.append("-idir : InferEM  sub-directory "
@@ -71,6 +73,10 @@ def create_parser():
         dictionary of model probabiltiies."""
         )
     parser = argparse.ArgumentParser(description=desc_str)
+    parser.add_argument('-f','--file', 
+            help = 'input (data) file name', 
+            type = str,
+            required = True)
     parser.add_argument('-db', '--database_directory',
             help = 'name of the database directory',
             type = str,
@@ -112,9 +118,12 @@ def main():
     arg_str = report_args(args)
     print arg_str
 
-    summary_str = sample_db(args.database_directory,
-            args.inferem_directory,
-            args.model_probabilities,
+    # read data
+    data = read_datafile(args.file)
+    
+    # call sample_db method
+    summary_str = sample_db(data, args.database_directory,
+            args.inferem_directory, args.model_probabilities,
             args.number_samples)
     
     print summary_str

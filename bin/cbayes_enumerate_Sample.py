@@ -47,6 +47,8 @@ def report_args(args):
 
     arg_list.append("SETTINGS:\n")
     arg_list.append("-f  : Data file >> {:s}\n".format(args.file))
+    arg_list.append("--this_is_prior : "
+           "is this the prior? >> {:s}\n".format(str(args.this_is_prior)))
     arg_list.append("-db : Database root directory "
             ">> {:s}\n".format(args.database_directory))
     arg_list.append("-idir : InferEM  sub-directory "
@@ -97,6 +99,11 @@ def create_parser():
             type = int,
             required = True
             )
+    parser.add_argument('--this_is_prior',
+            help = 'indicate this is sampling from prior',
+            action = 'store_true',
+            required = False
+            )
     
     # do the parsing
     args = parser.parse_args()
@@ -124,7 +131,7 @@ def main():
     # call sample_db method
     summary_str = sample_db(data, args.database_directory,
             args.inferem_directory, args.model_probabilities,
-            args.number_samples)
+            args.number_samples, args.this_is_prior)
     
     print summary_str
 

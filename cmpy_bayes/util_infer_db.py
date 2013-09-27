@@ -468,7 +468,7 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
     return (summary_str, model_probabilities)
 
 
-def sample_db(data, dbdir, inferemdir, modelprobs, num_sample):
+def sample_db(data, dbdir, inferemdir, modelprobs, num_sample, prior=False):
     """A function to generate samples from the prior or posterior over model
     topologies.
 
@@ -485,6 +485,8 @@ def sample_db(data, dbdir, inferemdir, modelprobs, num_sample):
         sampling.
     num_sample : int
         The number of machines to sample.
+    prior : bool
+        Indicate this is sampling from prior -- ignore data.
     
     Returns
     -------
@@ -573,7 +575,13 @@ def sample_db(data, dbdir, inferemdir, modelprobs, num_sample):
     #
     # limit chunksize to 1000
     csize = min(1000, num_sample/numCPUs)
-    args = [data, file_sampler, inferdir, sampledir]
+    if prior:
+        # this is prior, pass data=None
+        args = [None, file_sampler, inferdir, sampledir]
+    else:
+        # posterior, pass real data
+        args = [data, file_sampler, inferdir, sampledir]
+
     for snum in pool.imap(sample_map_star, 
                           itertools.izip(iter_snum,
                                          itertools.repeat(args)), 
@@ -594,8 +602,9 @@ def sample_db(data, dbdir, inferemdir, modelprobs, num_sample):
     return summary_str
 
 def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
-    """A function to add new topologies to a database of pickled InferEM
-    instances.  Data is ignored and only settings for prior(s) is considered.
+    """A fuction to add new topologies to a database consisting of a pickled
+    dictionary with model id and evidence value for provided data.  If the
+    passed directory does not exist, it will be created.
 
     Parameters
     ----------
@@ -604,7 +613,7 @@ def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
     iter_topologies : iterator of MealyHMM or RecurrentEpsilonMachines
         An iterator with candidate topologies.
     csize : int
-        Chunk size for the mulit-threading.
+        Chunk size for the multi-threading.
 
     Returns
     -------
@@ -616,9 +625,15 @@ def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
     cwd = os.getcwd()
     summary = []
 
-    # check if prior database dir exisits
-    inferdir = os.path.join(dbdir,"inferEM_{:d}-{:d}".format(0,0))
-
+    # check data
+    if (dbdir == None) or (iter_topologies == None):
+        raise Exception("""
+        Must pass database directory and iterator of topologies to be
+        considered.
+        """)
+    
+    # check if database dir exisits
+    inferdir = os.path.join(dbdir,"inferEM_{:d}-{:d}".format(0, 0))
     if os.path.exists(dbdir):
         summary.append("* DB {:s} exists\n".format(dbdir))
         # test for inferEM directory
@@ -650,35 +665,67 @@ def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
     summary.append(" -- start time   : {}\n".format(script_start))
 
     # run with imap to get iterator execution
+    evidence_dict = {}
     num_tried = 0
     num_valid = 0
-    num_exist = 0
-    
+
     #
     # use imap with some manipulation to take multiple arguments
     #  http://stackoverflow.com/questions/5442910/
     #         python-multiprocessing-pool-map-for-multiple-arguments
     #
-    # None is passed instead of data to get prior
-    for em in pool.imap(infer_map_star, itertools.izip(iter_topologies,
+    ## pass None as data to get prior
+    for mname,minfo in pool.imap(infer_map_star, itertools.izip(iter_topologies,
                                                        itertools.repeat(None)),
                                                        chunksize=csize):
         # count number tried
         num_tried += 1
         
-        # 
-        if em == 1:
+        # m_info format: {'id': str, 'log_evidence': float}
+        if minfo['log_evidence'] == -numpy.inf:
+            # no valid for this data and machine, record zero probability
+            evidence_dict[mname] = minfo
+        else:
             num_valid += 1
-        elif em == 2:
-            num_exist += 1
-            
+            evidence_dict[mname] = minfo
+
+    # check for existing dicionary
+    num_existed = 0
+    if os.path.isfile('evidence_dictionary.pickle'):
+        summary.append(" ** evidence_dictionary.pickle already exists!\n")
+        summary.append("   ** only adding new models.\n")
+        summary.append("   ** existing enteries will NOT be modified.\n")
+
+        # load existing file
+        f = open('evidence_dictionary.pickle', 'rb')
+        evidence_previous = pickle.load(f)
+        f.close()
+
+        # parse new results
+        for mid, mid_evid in evidence_dict.items():
+            if evidence_previous.has_key(mid):
+                # already exists
+                num_existed += 1
+            else:
+                # new entry, add
+                evidence_previous[mid] = mid_evid
+
+        # pickle the evidence dictionary, new and old results
+        f = open('evidence_dictionary.pickle', 'wb')
+        pickle.dump(evidence_previous,f)
+        f.close()
+    else:
+        # pickle the evidence dictionary, only new results
+        f = open('evidence_dictionary.pickle', 'wb')
+        pickle.dump(evidence_dict,f)
+        f.close()
+    
     script_end = datetime.datetime.now()
     summary.append(" -- end time     : {}\n".format(script_end))
     time_diff = str(script_end-script_start)
     summary.append(" -- compute time : {}\n\n".format(time_diff))
     summary.append(" --  {} valid of {} attempted "
-                   "({} already existed)\n".format(num_valid, num_tried,
-                                                 num_exist))
+            "({} already existed)\n".format(num_valid, num_tried, num_existed))
     
     summary_str = ''.join(summary)
 
@@ -686,3 +733,4 @@ def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
     os.chdir(cwd)
 
     return (summary_str, inferdir)
+

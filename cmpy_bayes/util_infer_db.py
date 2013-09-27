@@ -194,7 +194,7 @@ def sample_map(sample_num, args):
     sample_file = ''.join(['inferEM_', sample_mname, '.pickle'])
     inferem_file = os.path.join(inputdir, sample_file)
 
-    # if exists, load.  otherwise create and save
+    # if exists, load.  otherwise create
     if os.path.exists(inferem_file):
         # pickled inferEM exists
         f = open(inferem_file, 'r')
@@ -211,15 +211,13 @@ def sample_map(sample_num, args):
 
         # get machine topology
         machine = pyidcdfa.int_to_machine(id, n, k)
+        # set name, with proper ID - n states, k symbols
+        mname = "n{}_k{}_id{}".format(n, k, id)
+        machine.set_name(mname)
 
         # generate inferEM instance
         inferem_instance = cmbayes.InferEM(machine, data)
 
-        # write pickled instance for later use
-        #f = open(inferem_file, 'w')
-        #pickle.dump(inferem_instance, f)
-        #f.close()
-   
     # sample machine (also returns start node, not needed)
     _, em_sample = inferem_instance.generate_sample()
     

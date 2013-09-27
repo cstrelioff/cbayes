@@ -2,7 +2,7 @@
 
 """cbayes_bash_enumerate_overlap_analysis.py
 
-Create a slurm script to run a sequence of `cbayes_enumerate_` scripts on a
+Create a bash script to run a sequence of `cbayes_enumerate_` scripts on a
 specified data file.  In this case, the focus is on analysis of single data
 file as well as considering overlapping segments to test for stationary
 behavior.  In this context, stationary means that analysis of segments of the

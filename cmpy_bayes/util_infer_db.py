@@ -216,9 +216,9 @@ def sample_map(sample_num, args):
         inferem_instance = cmbayes.InferEM(machine, data)
 
         # write pickled instance for later use
-        f = open(inferem_file, 'w')
-        pickle.dump(inferem_instance, f)
-        f.close()
+        #f = open(inferem_file, 'w')
+        #pickle.dump(inferem_instance, f)
+        #f.close()
    
     # sample machine (also returns start node, not needed)
     _, em_sample = inferem_instance.generate_sample()

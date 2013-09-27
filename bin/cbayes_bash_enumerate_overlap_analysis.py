@@ -244,6 +244,7 @@ def write_scripts(args):
     
     # single line -- sample machines
     ssl_list.append("cbayes_enumerate_Sample.py")
+    ssl_list.append(" -f {}".format(args.file))
     ssl_list.append(" -db {}".format(args.database_directory))
     ssl_list.append(" -idir inferEM_0-{}".format(data_len))
     ssl_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
@@ -308,6 +309,7 @@ def write_scripts(args):
         
         # single line -- sample machines
         ssl_list.append("cbayes_enumerate_Sample.py")
+        ssl_list.append(" -f {}".format(args.file))
         ssl_list.append(" -db {}".format(args.database_directory))
         ssl_list.append(" -idir inferEM_{}-{}".format(div_start, div_end))
         ssl_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))

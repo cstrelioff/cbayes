@@ -29,6 +29,7 @@ import cmpy.inference.bayesianem as bayesem
 
 from cmpy_bayes import read_datafile
 from cmpy_bayes import check_positive_float
+from cmpy_bayes import check_sr_tuple
 from cmpy_bayes import sample_db
 
 class InferDBException(Exception):
@@ -57,6 +58,13 @@ def report_args(args):
             ">> {:s}\n".format(args.model_probabilities))
     arg_list.append("-ns : Number of machines to sample "
             ">> {:d}\n".format(args.number_samples))
+    if args.subsample_range is None:
+        arg_list.append("-sr : Subsample range >> "
+                "Not provided, *all* data used.\n")
+    else:
+        pt1, pt2 = args.subsample_range.split(',')
+        arg_list.append("-sr : Subsample range >> "
+                "{:d}:{:d}\n".format(int(pt1), int(pt2)))
     
     arg_str = ''.join(arg_list)
 
@@ -79,6 +87,12 @@ def create_parser():
             help = 'input (data) file name', 
             type = str,
             required = True)
+    parser.add_argument('-sr', '--subsample_range',
+            help = ("subsample range data[pt1:pt2] passed as -sr pt1,pt2;"
+                " *if not provided all data used*"),
+            type = check_sr_tuple,
+            required = False
+            )
     parser.add_argument('-db', '--database_directory',
             help = 'name of the database directory',
             type = str,
@@ -127,6 +141,18 @@ def main():
 
     # read data
     data = read_datafile(args.file)
+    
+    # process subsample range, if any
+    if args.subsample_range is None:
+        # use all data
+        pt1 = 0
+        pt2 = len(data)
+    else:
+        # use part of data
+        pt1, pt2 = args.subsample_range.split(',')
+        pt1 = int(pt1)
+        pt2 = int(pt2)
+        data = data[pt1:pt2]
     
     # call sample_db method
     summary_str = sample_db(data, args.database_directory,

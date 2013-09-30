@@ -171,11 +171,13 @@ def write_scripts(args):
     
     # single line - sample machines using prior
     prior_list.append("cbayes_enumerate_Sample.py")
+    prior_list.append(" -f {}".format(args.file))
     prior_list.append(" -db {}".format(args.database_directory))
     prior_list.append(" -idir inferEM_0-0")
     prior_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
     prior_list.append("_penalty-{}.pickle".format(args.penalty))
-    prior_list.append(" -ns {}\n".format(args.number_samples))
+    prior_list.append(" -ns {}".format(args.number_samples))
+    prior_list.append(" --this_is_prior\n")
     prior_list.append("echo\n")
     prior_list.append("echo \">> Process sampled PRIOR machines: `date`\"\n")
 
@@ -239,6 +241,8 @@ def write_scripts(args):
         
         # single line -- sample machines
         ssl_list.append("cbayes_enumerate_Sample.py")
+        ssl_list.append(" -f {}".format(args.file))
+        ssl_list.append(" -sr 0,{}".format(ssl))
         ssl_list.append(" -db {}".format(args.database_directory))
         ssl_list.append(" -idir inferEM_0-{}".format(ssl))
         ssl_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))

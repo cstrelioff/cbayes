@@ -203,8 +203,6 @@ def sample_map(sample_num, args):
     inputdir = args[2]
     outdir = args[3]
 
-    # create file name
-    fname = "sample{:05d}.pickle".format(sample_num)
 
     # sample a modelname
     sample_mname = sampler()
@@ -239,6 +237,9 @@ def sample_map(sample_num, args):
 
     # sample machine (also returns start node, not needed)
     _, em_sample = inferem_instance.generate_sample()
+    
+    # create file name
+    fname = "sample{:05d}.pickle".format(sample_num)
     
     # write to file
     f = open(os.path.join(outdir,fname), 'w')

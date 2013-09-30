@@ -284,7 +284,7 @@ def write_scripts(args):
         ssl_list = []
         ## Add models to DB for this subsample
         ssl_list.append("##\n")
-        ssl_list.append("## {} SUBSAMPLE: {} -- {}\n".format(div_num+1,
+        ssl_list.append("echo \"{} SUBSAMPLE: {} -- {}\"\n".format(div_num+1,
                                                              div_start,
                                                              div_end))
         ssl_list.append("echo \">> Add models, subsample")

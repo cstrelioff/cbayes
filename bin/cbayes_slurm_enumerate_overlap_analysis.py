@@ -140,7 +140,7 @@ def write_scripts(args):
 
     """
     # create filename and open
-    jobname ="enumerate_overlap_analysis_{:s}".format(args.file.split('.')[0])
+    jobname ="enum_overlap_{:s}".format(args.file.split('.')[0])
     fname = ''.join([jobname, ".sh"])
     f = open(fname, 'w')
     

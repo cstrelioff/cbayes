@@ -140,7 +140,7 @@ def write_scripts(args):
 
     """
     # create filename and open
-    jobname ="enumerate_overlap_analysis_{:s}".format(args.file.split('.')[0])
+    jobname ="enumerate_bash_overlap_analysis_{:s}".format(args.file.split('.')[0])
     fname = ''.join([jobname, ".sh"])
     f = open(fname, 'w')
 
@@ -316,6 +316,7 @@ def write_scripts(args):
         ssl_list.append(" -idir inferEM_{}-{}".format(div_start, div_end))
         ssl_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
         ssl_list.append("_penalty-{}.pickle".format(args.penalty))
+        ssl_list.append(" -sr {},{}".format(div_start, div_end))
         ssl_list.append(" -ns {}\n".format(args.number_samples))
         
         ## process sampled machines

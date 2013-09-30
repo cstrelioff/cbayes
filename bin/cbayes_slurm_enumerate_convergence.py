@@ -130,7 +130,7 @@ def write_scripts(args):
 
     """
     # create filename and open
-    jobname ="enumerate_converge_{:s}".format(args.file.split('.')[0])
+    jobname ="enum_conv_{:s}".format(args.file.split('.')[0])
     fname = ''.join([jobname, ".sh"])
     f = open(fname, 'w')
 
@@ -177,11 +177,13 @@ def write_scripts(args):
     
     # single line - sample machines using prior
     prior_list.append("srun -l cbayes_enumerate_Sample.py")
+    prior_list.append(" -f {}".format(args.file))
     prior_list.append(" -db {}".format(args.database_directory))
     prior_list.append(" -idir inferEM_0-0")
     prior_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
     prior_list.append("_penalty-{}.pickle".format(args.penalty))
-    prior_list.append(" -ns {}\n".format(args.number_samples))
+    prior_list.append(" -ns {}".format(args.number_samples))
+    prior_list.append(" --this_is_prior\n")
     prior_list.append("echo\n")
     prior_list.append("echo \">> Process sampled PRIOR machines: `date`\"\n")
 
@@ -245,6 +247,8 @@ def write_scripts(args):
         
         # single line -- sample machines
         ssl_list.append("srun -l cbayes_enumerate_Sample.py")
+        ssl_list.append(" -f {}".format(args.file))
+        ssl_list.append(" -sr 0,{}".format(ssl))
         ssl_list.append(" -db {}".format(args.database_directory))
         ssl_list.append(" -idir inferEM_0-{}".format(ssl))
         ssl_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
@@ -273,7 +277,8 @@ def write_scripts(args):
     f.write("printf \"Total Compute Time: %02d:%02d:%02d:%02d\"" 
             " \"$((diff/86400))\" \"$((diff/3600%24))\"" 
             " \"$((diff/60%60))\" \"$((diff%60))\"\n")
-    
+    f.write("echo\n")
+    f.write("echo\n")
     f.close()
 
 def main():

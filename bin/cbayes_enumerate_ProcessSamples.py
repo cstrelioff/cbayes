@@ -91,24 +91,12 @@ def main():
     print arg_str
     
     # create sample summary file
-    create_sample_summary_file(args.database_directory,
-                               args.sample_directory)
+    summary_str = create_sample_summary_file(args.database_directory,
+                                             args.sample_directory)
 
 
-    ## write log
-    #inferemdir = os.path.join(args.database_directory, args.inferem_directory)
-    #logfile = os.path.join(inferemdir, 'summary.log')
-    #if os.path.exists(inferemdir):
-    #    f = open(logfile, 'a')
-    #else:
-    #    f = open(logfile, 'w')
-    # 
-    #f.write('\n*** start: Generate Sample Machines***\n\n')
-    #f.write(arg_str)
-    #f.write('\n')
-    #f.write(summary_str)
-    #f.write('\n*** end: Generate Sample Machines***\n')
-    #f.close()
+    ## print compute time summary
+    print summary_str
     
 if __name__ == '__main__':
     main()

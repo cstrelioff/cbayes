@@ -35,8 +35,18 @@ def create_sample_summary_file(db_dir, sample_dir):
         Name of the root database directory.
     sample_dir : str
         Name of the subdirectory containing the sample machine in pickled form.
+    
+    Returns
+    -------
+    summary : str
+        A summary with compute time information.
 
     """
+    # start processing...
+    script_start = datetime.datetime.now()
+    summary = []
+    summary.append(" -- start time   : {}\n".format(script_start))
+
     # get file 
     sample_files = read_sample_dir(db_dir, sample_dir)
 
@@ -102,6 +112,15 @@ def create_sample_summary_file(db_dir, sample_dir):
 
     # change back to startdir
     os.chdir(startdir)
+    
+    script_end = datetime.datetime.now()
+    summary.append(" -- end time     : {}\n".format(script_end))
+    time_diff = str(script_end-script_start)
+    summary.append(" -- compute time : {}\n\n".format(time_diff))
+
+    summary_str = ''.join(summary)
+
+    return summary_str
 
 def infer_map(machine, data):
     """A map function for mutiprocessing to consider topologies in parallel.
@@ -322,8 +341,8 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
         
         # m_info format: {'id': str, 'log_evidence': float}
         if minfo['log_evidence'] == -numpy.inf:
-            # no valid for this data and machine, record zero probability
-            evidence_dict[mname] = minfo
+            # no valid for this data and machine
+            pass
         else:
             num_valid += 1
             evidence_dict[mname] = minfo
@@ -683,8 +702,8 @@ def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
         
         # m_info format: {'id': str, 'log_evidence': float}
         if minfo['log_evidence'] == -numpy.inf:
-            # no valid for this data and machine, record zero probability
-            evidence_dict[mname] = minfo
+            # not valide -- should not visit this for prior...
+            pass
         else:
             num_valid += 1
             evidence_dict[mname] = minfo

@@ -5,10 +5,10 @@ import os
 import argparse
 import numpy
 
-from research import check_positive_int
-from research import check_positive_float
-from research import check_probability
-from research import create_dir
+from cmpy_bayes import check_positive_int
+from cmpy_bayes import check_positive_float
+from cmpy_bayes import check_probability
+from cmpy_bayes import create_dir
 
 def create_parser():
     """Create argparse instance for script.

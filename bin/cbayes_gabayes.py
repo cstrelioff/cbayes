@@ -6,11 +6,11 @@ import argparse
 import cmpy
 import cmpy.inference.evolveem as evolveem
 
-from research import check_dir_exists
-from research import check_positive_float
-from research import check_positive_int
-from research import check_probability
-from research import read_datafile
+from cmpy_bayes import check_dir_exists
+from cmpy_bayes import check_positive_float
+from cmpy_bayes import check_positive_int
+from cmpy_bayes import check_probability
+from cmpy_bayes import read_datafile
 
 def evolve(ev_pop, generations, output_dir, viable_only=True, verbose=False,
         generation_summary=False):

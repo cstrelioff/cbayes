@@ -254,6 +254,7 @@ def sample_map_star(a_b):
     
     return sample_map(*a_b)
 
+@profile # profile using line_profile
 def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
         csize=1000):
     """A fuction to add new topologies to a database consisting of a pickled

@@ -17,9 +17,9 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cmpy_bayes import read_datafile
-from cmpy_bayes import check_sr_tuple
-from cmpy_bayes import add_topologies_to_db
+from cbayes import read_datafile
+from cbayes import check_sr_tuple
+from cbayes import add_topologies_to_db
 
 # exception
 class InferDBException(Exception):

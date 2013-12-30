@@ -27,10 +27,10 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cmpy_bayes import read_datafile
-from cmpy_bayes import check_positive_float
-from cmpy_bayes import check_sr_tuple
-from cmpy_bayes import sample_db
+from cbayes import read_datafile
+from cbayes import check_positive_float
+from cbayes import check_sr_tuple
+from cbayes import sample_db
 
 class InferDBException(Exception):
     pass

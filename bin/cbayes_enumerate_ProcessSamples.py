@@ -5,7 +5,7 @@
 This script processes the samples generated using `cbayes_enumerate_Sample.py`.
 A single *.dat file is created with basic information about each sampled
 machine including machine id, number of states, number of edges, Cmu, hmu etc.
---- see `cmpy_bayes.util_infer_db.py` for details.
+--- see `cbayes.util_infer_db.py` for details.
 
 """
 from __future__ import division
@@ -16,9 +16,9 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cmpy_bayes import check_positive_float
-from cmpy_bayes import create_sample_summary_file
-from cmpy_bayes import sample_db
+from cbayes import check_positive_float
+from cbayes import create_sample_summary_file
+from cbayes import sample_db
 
 class InferDBException(Exception):
     pass

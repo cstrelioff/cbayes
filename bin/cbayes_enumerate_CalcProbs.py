@@ -17,9 +17,9 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cmpy_bayes import check_positive_float
-from cmpy_bayes import read_datafile
-from cmpy_bayes import calc_probs_beta_db
+from cbayes import check_positive_float
+from cbayes import read_datafile
+from cbayes import calc_probs_beta_db
 
 class InferDBException(Exception):
     pass

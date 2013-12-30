@@ -17,7 +17,7 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cmpy_bayes import prior_add_topologies_to_db
+from cbayes import prior_add_topologies_to_db
 
 # exception
 class InferDBException(Exception):

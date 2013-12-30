@@ -11,11 +11,11 @@ import os
 import argparse
 import numpy
 
-from cmpy_bayes import check_positive_int
-from cmpy_bayes import check_positive_float
-from cmpy_bayes import check_probability
-from cmpy_bayes import create_dir
-from cmpy_bayes import read_datafile
+from cbayes import check_positive_int
+from cbayes import check_positive_float
+from cbayes import check_probability
+from cbayes import create_dir
+from cbayes import read_datafile
 
 def create_parser():
     """Create argparse instance for script.

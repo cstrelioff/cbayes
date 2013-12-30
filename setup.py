@@ -2,13 +2,13 @@
 
 from distutils.core import setup
 
-setup(name='cmpy_bayes',
+setup(name='cbayes',
     version='0.1',
     description='Scripts for Bayesian inference of uHMMs and eMs using CMPy.',
     author='Christopher C. Strelioff',
     author_email='chris.strelioff@gmail.com',
-    url='https://github.com/cstrelioff/cmpy_bayes',
-    packages = ['cmpy_bayes'],
+    url='https://github.com/cstrelioff/cbayes',
+    packages = ['cbayes'],
     scripts = ['bin/cbayes_bash_enumerate_convergence.py',
         'bin/cbayes_bash_enumerate_overlap_analysis.py',
         'bin/cbayes_gabayes.py',

@@ -1,11 +1,10 @@
-# cmpy_bayes #
+# cbayes #
 
 **Note:** Currently in heavy development.
 
-A collection of Python scripts and a package of utility functions to make
-Bayesian inference of unifilar hidden Markov models (uHMMs) and
-epsilon-machines with Computation Mechanics Python, aka
-[CMPy](http://cmpy.csc.ucdavis.edu/) easier.
+A collection of Python scripts to make Bayesian inference of unifilar hidden
+Markov models (uHMMs) and epsilon-machines with Computation Mechanics Python,
+aka [CMPy](http://cmpy.csc.ucdavis.edu/) easier.
 
 ## Dependencies ##
 
@@ -21,7 +20,7 @@ are required to use these scripts.
 Get the code from github in the usual manner.  In a suitable directory clone
 the repository using:
 
-    git clone git@github.com:cstrelioff/cmpy_bayes.git
+    git clone git@github.com:cstrelioff/cbayes.git
 
 Install using:
 
@@ -43,6 +42,7 @@ command line easy.  To get help for a script, type
 
     scriptname --help
 
+<!---
 ### cbayes_create_process_datafile.py ###
 
 Create a data file that works nicely with other cbayes scripts.  Can use
@@ -107,4 +107,6 @@ by considering subsegments, using the single data file, of increasing length.
 
 This version of the convergence analysis is designed for bigger jobs, using
 slurm on a cluster.  For small jobs, try the bash version.
+
+--->
 

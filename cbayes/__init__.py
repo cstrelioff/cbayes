@@ -1,4 +1,4 @@
-"""cmpy_bayes
+"""cbayes
 
 A set of scripts to make use of Bayesian methods for inference of unifilar HMMs
 and epsilon-machines CMPy easier.

@@ -16,8 +16,8 @@ from .util_general import create_dir
 from .util_general import read_datafile
 from .util_general import read_sample_dir
 
-from .util_infer_db import add_topologies_to_db
-from .util_infer_db import calc_probs_beta_db
-from .util_infer_db import create_sample_summary_file
-from .util_infer_db import prior_add_topologies_to_db
-from .util_infer_db import sample_db
+from .util_infer import add_topologies_to_db
+from .util_infer import calc_probs_beta_db
+from .util_infer import create_sample_summary_file
+from .util_infer import prior_add_topologies_to_db
+from .util_infer import sample_db

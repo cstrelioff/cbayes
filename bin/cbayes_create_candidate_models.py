@@ -93,8 +93,8 @@ def create_parser():
     return args
 
 def main():
-    """Run the specified models, without data, to get InferEM instances
-    reflecting the prior.
+    """Create the database directory, named as specified, and generate the
+    `machines` file containing the requested set of candidate models.
     
     """
     # parse command line

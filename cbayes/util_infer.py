@@ -8,11 +8,12 @@ from __future__ import absolute_import
 from __future__ import division
 
 import numpy
-from multiprocessing import Pool, cpu_count
+#from multiprocessing import Pool, cpu_count
+import multiprocessing
 import itertools
 import datetime
 import os
-from math import exp
+import math
 try:
     import cPickle as pickle
 except:
@@ -20,10 +21,107 @@ except:
 
 import cmpy
 from cmpy.math import log, logaddexp
-import cmpy.inference.bayesianem as cmbayes
+import cmpy.inference.bayesianem as bayesem
 import cmpy.orderlygen.pyicdfa as pyidcdfa
 
 from .util_general import read_sample_dir
+from .util_general import deltatime_format
+
+def create_model_string(model):
+    """Create a string representation of model for writing to file."""
+    import cmpy
+    from cmpy.machines import MealyHMM
+    
+    ## default assumption type is uHMM
+    model_type = 'uHMM'
+
+    # need to switch to MealyHMM class for use of is_minimal_unifilar() method
+    model.__class__ = MealyHMM  
+    if model.is_minimal_unifilar():
+        # topological eM
+        model_type = 'topEM'
+
+    model_topology = model.to_string().replace('\n','')
+
+    # create string
+    model_str = "{},{},{},{},{}\n".format(str(model),
+                                          model_type,
+                                          len(model.nodes()),
+                                          len(model.edges()),
+                                          model_topology)
+    
+    return model_str
+
+def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
+    """Create a file with candidate model information.
+
+    Parameters
+    ----------
+    filename : str
+        Complete path for the machine file.
+    A : int
+        Alphabet size.
+    N_list : list (ints)
+        A list of node (model) sizes to consider.
+    em_min : str
+        Consider just topological eMs or all uHMM topologies?
+    nmax : int
+        Maximum number of machine to load into RAM before processing.
+    nprocs : int
+        Number of simultaneous processes for mutiprocessing.
+        
+    Returns
+    -------
+    summary_str : str
+        A summary with compute time information.
+    
+    """
+    # start processing...
+    script_start = datetime.datetime.now()
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary = []
+    summary.append(" -- start time   : {}\n".format(script_start_str))
+    
+    f = open(filename, 'w')
+    out_str = "{},{},{},{},{}\n".format('name', 'HMM type',
+                                        'states', 'edges', 'topology')
+    f.write(out_str)
+    
+    # initialize model topology iterator
+    model_iter = bayesem.LibraryGenerator(A, N_list, em_min)
+
+    # create list of models
+    model_strings = {}
+    models = []
+    for m in model_iter:
+        models.append(m)
+
+        if len(models) == nmax:
+            # farm out model enumerated thus far
+            model_strings.update(mp_model_strings(models, nprocs))
+            models = []
+        else:
+            pass
+
+    # need to check for left over machines
+    model_strings.update(mp_model_strings(models, nprocs))
+
+    for m_name in sorted(model_strings.iterkeys()):
+        f.write(model_strings[m_name])
+    
+    f.close()
+     
+    # end processing...
+    script_end = datetime.datetime.now()
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
+
+    summary_str = ''.join(summary)
+
+    return summary_str
 
 def create_sample_summary_file(db_dir, sample_dir):
     """Create a file with properties of sample machines from prior or
@@ -134,7 +232,7 @@ def infer_map(machine, data):
     
     """
     # pass to InferEM
-    infer_temp = cmbayes.InferEM(machine,data)
+    infer_temp = bayesem.InferEM(machine,data)
 
     # extract machine name and other information
     model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
@@ -233,7 +331,7 @@ def sample_map(sample_num, args):
         machine.set_name(mname)
 
         # generate inferEM instance
-        inferem_instance = cmbayes.InferEM(machine, data)
+        inferem_instance = bayesem.InferEM(machine, data)
 
     # sample machine (also returns start node, not needed)
     _, em_sample = inferem_instance.generate_sample()
@@ -471,7 +569,7 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
         temp_log_prob = -log_evidence_total + log_evidence[em]
         
         # calculate probablirt
-        model_probabilities[em] = exp(temp_log_prob)
+        model_probabilities[em] = math.exp(temp_log_prob)
     
     # save pickled instance of dictionary
     f = open(fname, 'w')
@@ -620,6 +718,46 @@ def sample_db(data, dbdir, inferemdir, modelprobs, num_sample, prior=False):
     summary_str = ''.join(summary)
 
     return summary_str
+
+
+def mp_model_strings(models, nprocs):
+    """Multiprocessing control for create machines file."""
+
+    def mp_worker(models, out_q):
+        """Worker for mp_model_strings."""
+        outdict = {}
+        
+        for m in models:
+            outdict[str(m)] = create_model_string(m)
+    
+        out_q.put(outdict)
+    
+    # Each process will get 'chunksize' nums and a queue to put his out
+    # dict into
+    out_q = multiprocessing.Queue()
+    chunksize = int(math.ceil(len(models) / float(nprocs)))
+    procs = []
+
+    for i in range(nprocs):
+        p = multiprocessing.Process(
+                target=mp_worker,
+                args=(models[chunksize * i:chunksize * (i + 1)],
+                           out_q))
+
+        procs.append(p)
+        p.start()
+    
+    # Collect all results into a single result dict. We know how many dicts
+    # with results to expect.
+    resultdict = {}
+    for i in range(nprocs):
+        resultdict.update(out_q.get())
+
+    # Wait for all worker processes to finish
+    for p in procs:
+        p.join()
+
+    return resultdict
 
 def prior_add_topologies_to_db(dbdir=None, iter_topologies=None, csize=1000):
     """A fuction to add new topologies to a database consisting of a pickled

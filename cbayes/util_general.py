@@ -87,6 +87,28 @@ def correct_neg_zero(value):
     else:
         return value
 
+def deltatime_format(dt):
+    """String format for a datetime.deltatime object.
+    
+    Parameters
+    ----------
+    dt : datetime.timedelta instance
+        The difference between two datetime.datetime.now() evaluations.
+    
+    Returns
+    dt_str : str
+        A formatted string
+        
+    """
+    days = int(dt.days)
+    total_seconds = int(dt.total_seconds())
+    hours, remainder = divmod(total_seconds,60*60)
+    minutes, seconds = divmod(remainder,60)
+
+    dt_str = '{} days {} hrs {} mins {} secs'.format(days,hours,minutes,seconds)
+
+    return dt_str
+
 def create_dir(dir):
     """Create requested output directory.
 

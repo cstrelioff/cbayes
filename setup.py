@@ -20,5 +20,6 @@ setup(name='cbayes',
         'bin/cbayes_slurm_enumerate_convergence.py',
         'bin/cbayes_slurm_enumerate_overlap_analysis.py',
         'bin/cbayes_slurm_gabayes.py',
-        'bin/cbayes_create_process_datafile.py']
+        'bin/cbayes_create_process_datafile.py',
+        'bin/cbayes_create_candidate_models.py']
     )

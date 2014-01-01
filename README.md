@@ -47,15 +47,16 @@ command line easy.  To get help for a script, type
 ### Base Scripts ###
 
 These base scripts accoplish very specific tasks.  While they can be used alone,
-it is often useful to use the high level script (see above) to generate a bash
-of slurm master script for generation of a whole research protocol.
+it is often useful to employ the high level scripts (see above) to generate a
+bash or slurm master script for generation of a whole research protocol.  These
+master scripts use base scripts described below.
 
 #### cbayes_create_candidate_models.py ####
 
-This script generates a text file, `machine` that contains all candidate models
-to be consider in an inference protocol, whether this is convergence or overlap
-analysis.  This script alse create the base directory for output of all
-analysis.
+This script generates a text file, `machines` that contains all candidate models
+to be considered in an inference protocol, whether this is convergence or
+overlap analysis.  This script also creates the base (database) directory for
+output of all further analysis.
 
 <!---
 ### cbayes_create_process_datafile.py ###

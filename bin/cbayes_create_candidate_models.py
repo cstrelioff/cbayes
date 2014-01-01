@@ -2,6 +2,9 @@
 
 """cbayes_create_candidate_models.py
 
+This script is used to create a file with all candidate machine topologies
+that the user wants to consider.  In addition, a database directory -- really
+just a normal directory -- will be created for later use by other scripts.
 
 """
 from __future__ import division
@@ -14,10 +17,6 @@ import cmpy.inference.bayesianem as bayesem
 
 from cbayes import create_dir
 from cbayes import create_machine_file
-
-# exception
-class InferDBException(Exception):
-    pass
 
 def report_args(args):
     """Report the requested settings.

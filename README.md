@@ -42,6 +42,21 @@ command line easy.  To get help for a script, type
 
     scriptname --help
 
+### High Level Scripts ###
+
+### Base Scripts ###
+
+These base scripts accoplish very specific tasks.  While they can be used alone,
+it is often useful to use the high level script (see above) to generate a bash
+of slurm master script for generation of a whole research protocol.
+
+#### cbayes_create_candidate_models.py ####
+
+This script generates a text file, `machine` that contains all candidate models
+to be consider in an inference protocol, whether this is convergence or overlap
+analysis.  This script alse create the base directory for output of all
+analysis.
+
 <!---
 ### cbayes_create_process_datafile.py ###
 

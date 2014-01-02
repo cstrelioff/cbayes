@@ -24,6 +24,7 @@ from cmpy.math import log, logaddexp
 import cmpy.inference.bayesianem as bayesem
 import cmpy.orderlygen.pyicdfa as pyidcdfa
 
+from .util_general import read_machines_file
 from .util_general import read_sample_dir
 from .util_general import deltatime_format
 
@@ -97,7 +98,7 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
         models.append(m)
 
         if len(models) == nmax:
-            # farm out model enumerated thus far
+            # farm out models enumerated thus far
             model_strings.update(mp_model_strings(models, nprocs))
             models = []
         else:
@@ -120,6 +121,67 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
     summary.append(" -- compute time : {}\n\n".format(time_diff_str))
 
     summary_str = ''.join(summary)
+
+    return summary_str
+
+def create_machine_prior_file(dbdir, nprocs):
+    """A fuction to generate a new file consisting of a pickled
+    dictionary with model id and evidence-like value without data.
+
+    Parameters
+    ----------
+    dbdir : str
+        The database (directory) name.
+    nprocs : int
+        Number of simultaneous processes for mutiprocessing.
+
+    Returns
+    -------
+    summary_str : str
+        A summary of the inference done for print to stdout or file.
+
+    """
+    cwd = os.getcwd()
+    summary = []
+
+    # mkdir inferEM_0-0 for prior
+    inferdir = os.path.join(dbdir,"inferEM_{:d}-{:d}".format(0, 0))
+    summary.append("* making subdirectory: {}\n".format(inferdir))
+    os.mkdir(inferdir)
+    
+    # change to inferEM database directory
+    os.chdir(inferdir)
+    summary.append("* using DB: {} subdir: {}\n\n".format(dbdir, inferdir))
+
+    # start inference...
+    script_start = datetime.datetime.now()
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
+
+    # open machines file
+    machines = read_machines_file(os.path.join(cwd,dbdir)) 
+
+    # do serious processing....
+    evidence_dict = {}
+    evidence_dict = mp_machine_evidence(machines, None, nprocs)
+
+    # pickle the evidence dictionary, only new results
+    f = open('evidence_dictionary.pickle', 'wb')
+    pickle.dump(evidence_dict,f)
+    f.close()
+    
+    # end processing...
+    script_end = datetime.datetime.now()
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
+
+    summary_str = ''.join(summary)
+
+    # return to cwd
+    os.chdir(cwd)
 
     return summary_str
 
@@ -220,14 +282,47 @@ def create_sample_summary_file(db_dir, sample_dir):
 
     return summary_str
 
-def infer_map(machine, data):
-    """A map function for mutiprocessing to consider topologies in parallel.
+#def infer_map(machine, data):
+#    """A map function for mutiprocessing to consider topologies in parallel.
+#    
+#    Return:
+#    
+#    (mname, minfo): tuple
+#        Tuple with machine name `mname` and dictionary `minfo` containing
+#        `log_evidence` for data series provided as well as the number of
+#        `nodes` and `edges` for the machine.
+#    
+#    """
+#    # pass to InferEM
+#    infer_temp = bayesem.InferEM(machine,data)
+#
+#    # extract machine name and other information
+#    model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
+#                                'nodes': len(machine.nodes()),
+#                                'edges': len(machine.edges())})
+#    
+#    return model_info
+
+#def infer_map_star(a_b):
+#    """Convert `infer_map([1,2])` to `infer_map(1,2)` call."""
+#    return infer_map(*a_b)
+
+def machine_log_evidence(machine, data):
+    """A function for getting the log evidence for a single model topology and
+    data set.  If None is passed for data, get values for prior.
+
+    Paremeters
+    ----------
+    machine : MealyHMM or RecurrentEpsilonMachine
+        Model topolgy to consider
+    data : list, None
+        Data series to consider for inference
     
-    Return:
-    
-    (mname, minfo): tuple
+    Return
+    ------
+    (mname, minfo) : tuple
         Tuple with machine name `mname` and dictionary `minfo` containing
-        `log_evidence` for data series provided as well as the number of
+        `log_evidence` for the data series provided as well as the number of
         `nodes` and `edges` for the machine.
     
     """
@@ -240,10 +335,6 @@ def infer_map(machine, data):
                                 'edges': len(machine.edges())})
     
     return model_info
-
-def infer_map_star(a_b):
-    """Convert `infer_map([1,2])` to `infer_map(1,2)` call."""
-    return infer_map(*a_b)
 
 def model_probs_factor(inferemfile, args):
     """Calculate model probability factor for model given beta 
@@ -719,6 +810,51 @@ def sample_db(data, dbdir, inferemdir, modelprobs, num_sample, prior=False):
 
     return summary_str
 
+def mp_machine_evidence(machines, data, nprocs):
+    """Multiprocessing control for create prior log evidence file."""
+
+    def mp_worker(machines, data, out_q):
+        """Worker for mp_machine_evidence."""
+        import cmpy
+        outdict = {}
+        
+        for m in machines:
+            # split out elements of list
+            # em_name, em_type, em_num_states, em_num_edges, em_str
+            em = cmpy.machines.from_string(m[4])
+
+            # get log evidence
+            outdict[m[0]] = machine_log_evidence(em, data)
+    
+        out_q.put(outdict)
+    
+    # Each process will get 'chunksize' nums and a queue to put his out
+    # dict into
+    out_q = multiprocessing.Queue()
+    chunksize = int(math.ceil(len(machines) / float(nprocs)))
+    procs = []
+
+    for i in range(nprocs):
+        p = multiprocessing.Process(
+                target=mp_worker,
+                args=(machines[chunksize * i:chunksize * (i + 1)],
+                      data,
+                      out_q))
+
+        procs.append(p)
+        p.start()
+    
+    # Collect all results into a single result dict. We know how many dicts
+    # with results to expect.
+    resultdict = {}
+    for i in range(nprocs):
+        resultdict.update(out_q.get())
+
+    # Wait for all worker processes to finish
+    for p in procs:
+        p.join()
+
+    return resultdict
 
 def mp_model_strings(models, nprocs):
     """Multiprocessing control for create machines file."""

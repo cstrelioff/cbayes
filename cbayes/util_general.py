@@ -203,11 +203,19 @@ def read_machines_file(db):
     f.close()
 
     # process and return
+    headerline = True
     machines = []
     for line in machines_raw:
-        line = line.strip()
-        # em_name, em_type, em_num_states, em_num_edges, em_str = line.split(',')
-        machines.append(line.split(','))
+        if line.startswith('#'):
+            pass
+        else:
+            if headerline:
+                # hit header row, next row real data
+                headerline = False
+            else:
+                line = line.strip()
+                # em_name, em_type, em_num_states, em_num_edges, em_str
+                machines.append(line.split(','))
     
     return machines
 

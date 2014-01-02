@@ -14,7 +14,6 @@ try:
 except:
     import pickle
 
-
 def check_dir_exists(dir):
     """Check if requested output directory exists.
 
@@ -30,6 +29,24 @@ def check_dir_exists(dir):
     """
     if os.path.exists(dir):
         raise Exception(">> Directory {} exists!".format(dir))
+
+def check_dir_doesnot_exist(dir):
+    """Check if requested output directory does not exist.
+
+    Paramters
+    ---------
+    dir : str
+        Name of directory to check.
+
+    Exceptions
+    ----------
+        Raise exception if output directory does not exist.
+
+    """
+    if not os.path.exists(dir):
+        raise Exception(">> Directory {} **does not** exist!".format(dir))
+
+    return dir
 
 def check_positive_float(value):
     """Make sure value is positive float."""
@@ -163,6 +180,36 @@ def read_datafile(filename):
                 data += line.split(',')
 
     return data
+
+def read_machines_file(db):
+    """Read machines file in passed `db` directory.
+
+    Parameters
+    ----------
+    cd : os.path instance
+        Full path to directory containing the `machines` file.
+        
+    Returns
+    -------
+    machines : list
+        A list of lists, containg information on all candidate machine
+        topologies.
+
+    """
+    # open machines file and read information
+    mfile = os.path.join(db, 'machines')
+    f = open(mfile, 'r')
+    machines_raw = f.readlines()
+    f.close()
+
+    # process and return
+    machines = []
+    for line in machines_raw:
+        line = line.strip()
+        # em_name, em_type, em_num_states, em_num_edges, em_str = line.split(',')
+        machines.append(line.split(','))
+    
+    return machines
 
 def read_sample_dir(db_dir, sample_dir):
     """Read sample files from given directory.

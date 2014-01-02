@@ -1,4 +1,4 @@
-"""util_infer_db.py
+"""util_infer.py
 
 Christopher C. Strelioff
 chris.strelioff@gmail.com
@@ -162,7 +162,6 @@ def create_machine_prior_file(dbdir, nprocs):
     machines = read_machines_file(os.path.join(cwd,dbdir)) 
 
     # do serious processing....
-    evidence_dict = {}
     evidence_dict = mp_machine_evidence(machines, None, nprocs)
 
     # pickle the evidence dictionary, only new results
@@ -320,8 +319,8 @@ def machine_log_evidence(machine, data):
     
     Return
     ------
-    (mname, minfo) : tuple
-        Tuple with machine name `mname` and dictionary `minfo` containing
+    (mname, mdict) : tuple
+        Tuple with machine name `mname` and dictionary `mdict` containing
         `log_evidence` for the data series provided as well as the number of
         `nodes` and `edges` for the machine.
     
@@ -813,23 +812,25 @@ def sample_db(data, dbdir, inferemdir, modelprobs, num_sample, prior=False):
 def mp_machine_evidence(machines, data, nprocs):
     """Multiprocessing control for create prior log evidence file."""
 
-    def mp_worker(machines, data, out_q):
+    def mp_worker(machines_subset, data, out_q):
         """Worker for mp_machine_evidence."""
         import cmpy
         outdict = {}
         
-        for m in machines:
+        for m in machines_subset:
             # split out elements of list
             # em_name, em_type, em_num_states, em_num_edges, em_str
             em = cmpy.machines.from_string(m[4])
+            em.set_name(m[0])
 
             # get log evidence
-            outdict[m[0]] = machine_log_evidence(em, data)
+            mname, minfo = machine_log_evidence(em, data)
+            outdict[mname] = minfo
     
         out_q.put(outdict)
     
-    # Each process will get 'chunksize' nums and a queue to put his out
-    # dict into
+    # Each process will get 'chunksize' machines, data and out_q for storing
+    # output
     out_q = multiprocessing.Queue()
     chunksize = int(math.ceil(len(machines) / float(nprocs)))
     procs = []
@@ -844,8 +845,7 @@ def mp_machine_evidence(machines, data, nprocs):
         procs.append(p)
         p.start()
     
-    # Collect all results into a single result dict. We know how many dicts
-    # with results to expect.
+    # Collect all results into a single result dict
     resultdict = {}
     for i in range(nprocs):
         resultdict.update(out_q.get())

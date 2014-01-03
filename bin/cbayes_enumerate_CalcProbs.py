@@ -106,9 +106,8 @@ def main():
                                     args.penalty)
 
     # write log
-    inferemdir = os.path.join(args.database_directory, args.inferem_directory)
-    logfile = os.path.join(inferemdir, 'summary.log')
-    if os.path.exists(inferemdir):
+    logfile = os.path.join(args.database_directory, 'summary.log')
+    if os.path.exists(logfile):
         f = open(logfile, 'a')
     else:
         f = open(logfile, 'w')

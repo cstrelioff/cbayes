@@ -16,9 +16,9 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
+from cbayes import calculate_probabilities
 from cbayes import check_positive_float
 from cbayes import read_datafile
-from cbayes import calc_probs_beta_db
 
 class InferDBException(Exception):
     pass
@@ -99,10 +99,10 @@ def main():
     print arg_str
 
     # generate model probabilities for models in DB 
-    summary_str, model_probs = calc_probs_beta_db(args.database_directory,
-                                    args.inferem_directory,
-                                    args.beta,
-                                    args.penalty)
+    summary_str, model_probs = calculate_probabilities(args.database_directory,
+                                                       args.inferem_directory,
+                                                       args.beta,
+                                                       args.penalty)
 
     # write log
     logfile = os.path.join(args.database_directory, 'summary.log')

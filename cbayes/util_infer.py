@@ -581,17 +581,16 @@ def add_topologies_to_db(range, data=None, dbdir=None, iter_topologies=None,
 
     return (summary_str, inferdir)
 
-def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
-    """A function to calculate the probabilities for a pickled dictionary of
-    model evidence values.
+def calculate_probabilities(dbdir, inferemdir, beta, penalty):
+    """A function to calculate the probabilities for a file containing
+    machine/model evidence values.
 
     Parameters
     ----------
-
     dbdir : str
         Base directory for the database (directory).
     inferemdir : str
-        Sub-directory for pickled InferEM instances to evaluate.
+        Sub-directory for log_evidence file.
     beta : float
         Strength of exponential penalty.
     penalty : str
@@ -602,6 +601,7 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
     (summary_str, model_probabilities) : (str, dict)
         A summary of function operations and a dictionary containing model
         probabilities.
+
     """
     summary = []
 

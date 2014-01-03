@@ -22,7 +22,7 @@ from .util_general import read_sample_dir
 from .util_general import write_evidence_file
 
 from .util_infer import add_topologies_to_db
-from .util_infer import calc_probs_beta_db
+from .util_infer import calculate_probabilities
 from .util_infer import mp_model_strings
 from .util_infer import create_machine_file
 from .util_infer import create_machine_prior_file

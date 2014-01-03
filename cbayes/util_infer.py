@@ -25,6 +25,7 @@ import cmpy.inference.bayesianem as bayesem
 import cmpy.orderlygen.pyicdfa as pyidcdfa
 
 from .util_general import deltatime_format
+from .util_general import read_evidence_file
 from .util_general import read_machines_file
 from .util_general import read_sample_dir
 from .util_general import write_evidence_file
@@ -634,9 +635,7 @@ def calc_probs_beta_db(dbdir, inferemdir, beta, penalty):
     summary.append(" -- start time   : {}\n".format(script_start))
 
     # open evidence dictionary from disk
-    fevi = open(os.path.join(inferdir, "evidence_dictionary.pickle"), 'rb')
-    evidence_dict = pickle.load(fevi)
-    fevi.close()
+    evidence_dict = read_evidence_file(inferdir)
     
     # process log evidence terms
     log_evidence_total = log(0)

@@ -181,12 +181,52 @@ def read_datafile(filename):
 
     return data
 
+def read_evidence_file(inferemdir):
+    """Read evidence file in passed `inferdir` directory.
+
+    Parameters
+    ----------
+    inferemdir : str
+        Full path to directory containing the `evidence` file.
+
+    Returns
+    -------
+    evidence_dict : dict
+        A dictionary of evidence values from specified file.
+
+    """
+    # open machines file and read information
+    efile = os.path.join(inferemdir, 'log_evidence')
+    f = open(efile, 'r')
+    evidence_raw = f.readlines()
+    f.close()
+
+    # process and return
+    headerline = True
+    evidence = {}
+    for line in evidence_raw:
+        if line.startswith('#'):
+            pass
+        else:
+            if headerline:
+                # hit header row, next row real data
+                headerline = False
+            else:
+                line = line.strip()
+                # em_name, log_evidence, nodes, edges
+                em_name, log_evidence, nodes, edges = line.split(',')
+                evidence[em_name] = {'log_evidence': float(log_evidence),
+                                     'nodes': int(nodes),
+                                     'edges': int(edges)}
+
+    return evidence
+
 def read_machines_file(db):
     """Read machines file in passed `db` directory.
 
     Parameters
     ----------
-    cd : os.path instance
+    db : os.path instance
         Full path to directory containing the `machines` file.
         
     Returns

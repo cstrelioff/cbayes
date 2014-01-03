@@ -325,3 +325,29 @@ def write_evidence_file(evidence, filename):
                                      em_info['edges']))
     f.close()
 
+def write_probabilities_file(probabilities, filename):
+    """Write a file containing the machine/model probabilities.
+
+    Parameters
+    ----------
+    probabilities : dict
+        A dictionary containg the probabilities for models
+    filename : str
+        Name for output file
+
+    Output
+    ------
+    mpfile : file
+        Write model probability file
+
+    """
+    # open file
+    f = open(filename, 'w')
+
+    # write header
+    f.write('{},{}\n'.format('em_name', 'probability'))
+
+    for em_name in sorted(probabilities.iterkeys()):
+        f.write('{},{}\n'.format(em_name, probabilities[em_name]))
+
+    f.close()

@@ -20,6 +20,7 @@ from .util_general import read_evidence_file
 from .util_general import read_machines_file
 from .util_general import read_sample_dir
 from .util_general import write_evidence_file
+from .util_general import write_probabilities_file
 
 from .util_infer import add_topologies_to_db
 from .util_infer import calculate_probabilities

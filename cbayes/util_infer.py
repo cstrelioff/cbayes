@@ -29,6 +29,7 @@ from .util_general import read_evidence_file
 from .util_general import read_machines_file
 from .util_general import read_sample_dir
 from .util_general import write_evidence_file
+from .util_general import write_probabilities_file
 
 def create_model_string(model):
     """Create a string representation of model for writing to file."""
@@ -608,31 +609,14 @@ def calculate_probabilities(dbdir, inferemdir, beta, penalty):
     # location of inferEM instances
     inferdir = os.path.join(dbdir, inferemdir) 
 
-    # check if database dir exisits
-    if os.path.exists(dbdir):
-        # test for inferEM directory
-        if os.path.exists(inferdir):
-            # okay, pass
-            pass 
-        else:
-            exit('\n\n ** InferEM subdirectory not found in %s !\n' % dbdir)
-    else:
-        # if not, error
-        exit('\n\n ** Database directory %s not found!\n' % dbdir)
-
-    # check for existing output file before doing work
-    ftemp = "modelprobs_beta-{:f}_penalty-{:s}.pickle".format(beta, penalty)
-    fname = os.path.join(inferdir, ftemp)
-    if os.path.exists(fname):
-        raise Exception("\nOutput file {} exists!\n".format(fname))
-
     # add to summary list
     summary.append("* using DB: {}\n".format(dbdir))
     summary.append("  - subdir: {}\n\n".format(inferdir))
     
-    # start inference...
+    # start processing...
     script_start = datetime.datetime.now()
-    summary.append(" -- start time   : {}\n".format(script_start))
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
 
     # open evidence dictionary from disk
     evidence_dict = read_evidence_file(inferdir)
@@ -659,15 +643,22 @@ def calculate_probabilities(dbdir, inferemdir, beta, penalty):
         # calculate probablirt
         model_probabilities[em] = math.exp(temp_log_prob)
     
-    # save pickled instance of dictionary
-    f = open(fname, 'w')
-    pickle.dump(model_probabilities,f)
-    f.close()
+    # check for existing output file before doing work
+    ftemp = "probabilities_beta-{:f}_penalty-{:s}".format(beta, penalty)
+    fname = os.path.join(inferdir, ftemp)
+    if os.path.exists(fname):
+        raise Exception("\nOutput file {} exists!\n".format(fname))
 
+    # save probabilities to file
+    write_probabilities_file(model_probabilities, fname)
+
+    # end processing...
     script_end = datetime.datetime.now()
-    summary.append(" -- end time     : {}\n".format(script_end))
-    time_diff = script_end - script_start
-    summary.append(" -- compute time : {}\n".format(str(time_diff)))
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
 
     summary_str = ''.join(summary)
 

@@ -24,9 +24,10 @@ from cmpy.math import log, logaddexp
 import cmpy.inference.bayesianem as bayesem
 import cmpy.orderlygen.pyicdfa as pyidcdfa
 
+from .util_general import deltatime_format
 from .util_general import read_machines_file
 from .util_general import read_sample_dir
-from .util_general import deltatime_format
+from .util_general import write_evidence_file
 
 def create_model_string(model):
     """Create a string representation of model for writing to file."""
@@ -164,10 +165,8 @@ def create_machine_prior_file(dbdir, nprocs):
     # do serious processing....
     evidence_dict = mp_machine_evidence(machines, None, nprocs)
 
-    # pickle the evidence dictionary, only new results
-    f = open('evidence_dictionary.pickle', 'wb')
-    pickle.dump(evidence_dict,f)
-    f.close()
+    # write the evidence dictionary to a file
+    write_evidence_file(evidence_dict, 'log_evidence')
     
     # end processing...
     script_end = datetime.datetime.now()

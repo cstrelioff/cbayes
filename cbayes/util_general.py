@@ -254,6 +254,34 @@ def read_sample_dir(db_dir, sample_dir):
 
     return sample_files
 
+def write_evidence_file(evidence, filename):
+    """Write a file containing the machine/model evidence terms.
 
+    Parameters
+    ----------
+    evidence : dict
+        A dictionary containg the evidence data
+    filename : str
+        Name for output file
 
+    Output
+    ------
+    log_evidence : file
+        Write log_evidence file
+
+    """
+    # open file
+    f = open(filename, 'w')
+    
+    # write header
+    f.write('{},{},{},{}\n'.format('em_name', 'log_evidence',
+                                   'nodes', 'edges'))
+
+    for em_name in sorted(evidence.iterkeys()):
+        em_info = evidence[em_name]
+        f.write('{},{},{},{}\n'.format(em_name,
+                                     em_info['log_evidence'],
+                                     em_info['nodes'],
+                                     em_info['edges']))
+    f.close()
 

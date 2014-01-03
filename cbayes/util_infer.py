@@ -128,8 +128,8 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
     return summary_str
 
 def create_machine_prior_file(dbdir, nprocs):
-    """A fuction to generate a new file consisting of a pickled
-    dictionary with model id and evidence-like value without data.
+    """A fuction to generate a text file consisting of log_evidence file for
+    prior.
 
     Parameters
     ----------

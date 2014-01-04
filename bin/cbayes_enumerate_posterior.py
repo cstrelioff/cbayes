@@ -2,7 +2,7 @@
 
 """cbayes_enumerate_posterior.py
 
-This script focuses on the posterrior over models, calculating the posterior
+This script focuses on the posterior over models, calculating the posterior
 probability for all model topologies in the `machines` file using the specified
 data file and data range.
 
@@ -16,9 +16,9 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cbayes import read_datafile
 from cbayes import check_sr_tuple
-from cbayes import add_topologies_to_db
+from cbayes import create_machine_posterior_file
+from cbayes import read_datafile
 
 # exception
 class InferDBException(Exception):
@@ -39,11 +39,6 @@ def report_args(args):
     arg_list.append("-f  : Data file >> {:s}\n".format(args.file))
     arg_list.append("-db : Database directory "
             ">> {:s}\n".format(args.database_directory))
-    arg_list.append("-a  : Alphabet size >> {:d}\n".format(args.alphabet_size))
-    arg_list.append("-n  : Number of states "
-            ">> {:s}\n".format(args.number_of_states))
-    arg_list.append("--topological_eMs : "
-           "topological eMs only? >> {:s}\n".format(str(args.topological_eMs)))
     if args.subsample_range is None:
         arg_list.append("-sr : Subsample range >> "
                 "Not provided, *all* data used.\n")
@@ -51,6 +46,8 @@ def report_args(args):
         pt1, pt2 = args.subsample_range.split(',')
         arg_list.append("-sr : Subsample range >> "
                 "{:d}:{:d}\n".format(int(pt1), int(pt2)))
+    arg_list.append("-nprocs : Number of simultaneous processes to run "
+            ">> {:d}\n".format(args.nprocs))
     
     arg_str = ''.join(arg_list)
 
@@ -65,8 +62,8 @@ def create_parser():
 
     """
     desc_str = (
-        """Process candidate model topologies and add to new, or existing,
-        DB."""
+        """Use machines file in specified db to do inference on data file
+        specified by --file."""
         )
     parser = argparse.ArgumentParser(description=desc_str)
     parser.add_argument('-f','--file', 
@@ -78,26 +75,17 @@ def create_parser():
             type = str,
             required = True
             )
-    parser.add_argument('-a', '--alphabet_size',
-            help = 'number of letters in alphabet',
-            type = int,
-            default = 2,
-            required = True)
-    parser.add_argument('-n', '--number_of_states',
-            help = 'a comma sep list of state numbers, eg 1,2,3',
-            type = str,
-            required = True)
     parser.add_argument('-sr', '--subsample_range',
             help = ("subsample range data[pt1:pt2] passed as -sr pt1,pt2;"
                 " *if not provided all data used*"),
             type = check_sr_tuple,
             required = False
             )
-    parser.add_argument('--topological_eMs',
-            help = 'include only topological eM structures',
-            action = 'store_true',
-            required = False
-            )
+    parser.add_argument('-nprocs',
+            help = 'number of simultaneous processes to run',
+            type = int,
+            default = 4)
+    
     
     # do the parsing
     args = parser.parse_args()
@@ -105,28 +93,19 @@ def create_parser():
     return args
 
 def main():
-    """Run the enumerative inference algorithm with passed data and parameters.
+    """Run the enumerative inference algorithm with passed data and specified
+    machines file.
     
     """
     # parse command line
     args = create_parser()
 
-    # process numStates
-    ns_str = args.number_of_states.split(',')
-    ns_list = [int(n) for n in ns_str]
-            
     # read data
     data = read_datafile(args.file)
 
     # get command line args and report settings
     arg_str = report_args(args)
     print arg_str
-
-    # parse set of models to consider, topological or all?
-    if args.topological_eMs:
-        em_min = 'min'
-    else:
-        em_min = 'none'
 
     # process subsample range, if any
     if args.subsample_range is None:
@@ -139,33 +118,31 @@ def main():
         pt1 = int(pt1)
         pt2 = int(pt2)
         data = data[pt1:pt2]
-        
-    # infer
-    # modify directory name to reflect subsampling of data, if any
-    (summary_str, inferemdir) = add_topologies_to_db((pt1,pt2), data, 
-                                  args.database_directory,
-                                  bayesem.LibraryGenerator(args.alphabet_size, 
-                                                           ns_list, 
-                                                           em_min),
-                                  csize=5000)
-
+    
+    # do the serious computing...
+    summary_str = create_machine_posterior_file(args.database_directory,
+                                                (pt1, pt2),
+                                                data,
+                                                args.nprocs)
+    
     # write log
-    logfile = os.path.join(inferemdir, 'summary.log')
-    if os.path.exists(inferemdir):
+    logfile = os.path.join(args.database_directory, 'summary.log')
+    if os.path.exists(logfile):
         f = open(logfile, 'a')
     else:
         f = open(logfile, 'w')
     
-    f.write('\n*** start: Add Models to DB ***\n\n')
+    f.write("""\n*** start: process posterior evidence terms,"""
+            """ range {}, {} ***\n\n""".format(pt1, pt2))
     f.write(arg_str)
     f.write('\n')
     f.write(summary_str)
-    f.write('\n*** end: Add Models to DB ***\n')
+    f.write("""\n*** end: process posterior evidence terms,"""
+            """ range {}, {} ***\n""".format(pt1, pt2))
     f.close()
 
     print summary_str
-    
+
 if __name__ == '__main__':
-    # run
     main()
 

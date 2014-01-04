@@ -127,6 +127,70 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
 
     return summary_str
 
+def create_machine_posterior_file(dbdir, range, data, nprocs):
+    """A fuction to generate a text file consisting of log_evidence for the
+    posterior.
+
+    Parameters
+    ----------
+    dbdir : str
+        The database (directory) name
+    range : tuple (int, int)
+        A tuple of integers provide the data range to consider
+    data : list
+        The complete data series -- assumes appropriate slice already made
+    nprocs : int
+        Number of simultaneous processes for mutiprocessing
+
+    Returns
+    -------
+    summary_str : str
+        A summary of the inference done for print to stdout or file.
+
+    """
+    cwd = os.getcwd()
+    summary = []
+
+    # mkdir inferEM_pt1-pt2 for posterior
+    pt1 = range[0]
+    pt2 = range[1]
+    inferdir = os.path.join(dbdir,"inferEM_{:d}-{:d}".format(pt1, pt2))
+    summary.append("* making subdirectory: {}\n".format(inferdir))
+    os.mkdir(inferdir)
+
+    # change to inferEM database directory
+    os.chdir(inferdir)
+    summary.append("* using DB: {} subdir: {}\n\n".format(dbdir, inferdir))
+
+    # start inference...
+    script_start = datetime.datetime.now()
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
+
+    # open machines file
+    machines = read_machines_file(os.path.join(cwd,dbdir))
+
+    # do serious processing....
+    evidence_dict = mp_machine_evidence(machines, data, nprocs)
+
+    # write the evidence dictionary to a file
+    write_evidence_file(evidence_dict, 'log_evidence')
+
+    # end processing...
+    script_end = datetime.datetime.now()
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
+
+    summary_str = ''.join(summary)
+
+    # return to cwd
+    os.chdir(cwd)
+
+    return summary_str
+
 def create_machine_prior_file(dbdir, nprocs):
     """A fuction to generate a text file consisting of log_evidence file for
     prior.

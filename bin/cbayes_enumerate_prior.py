@@ -16,7 +16,6 @@ import cmpy
 import cmpy.inference.bayesianem as bayesem
 
 from cbayes import create_machine_prior_file
-from cbayes import prior_add_topologies_to_db
 from cbayes import check_dir_doesnot_exist
 
 # exception

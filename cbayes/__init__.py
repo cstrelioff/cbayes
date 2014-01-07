@@ -27,3 +27,4 @@ from .util_infer import mp_model_strings
 from .util_infer import create_machine_file
 from .util_infer import create_machine_prior_file
 from .util_infer import create_machine_posterior_file
+from .util_infer import sample_machines

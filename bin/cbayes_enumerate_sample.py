@@ -14,7 +14,6 @@ import argparse
 import cmpy
 import cmpy.inference.bayesianem as bayesem
 
-from cbayes import read_datafile
 from cbayes import check_positive_float
 from cbayes import check_sr_tuple
 from cbayes import sample_machines
@@ -37,7 +36,7 @@ def report_args(args):
             ">> {:s}\n".format(args.inferem_directory))
     arg_list.append("-mp : Model probabilities "
             ">> {:s}\n".format(args.model_probabilities))
-    arg_list.append("-ns : Number of samples for create "
+    arg_list.append("-ns : Number of samples to create "
             ">> {:d}\n".format(args.number_samples))
     
     arg_str = ''.join(arg_list)
@@ -113,7 +112,7 @@ def main():
     f.write(arg_str)
     f.write('\n')
     f.write(summary_str)
-    f.write('\n*** end: generating machine sample ***\n')
+    f.write('\n*** end: generating machine samples ***\n')
     f.close()
     
 if __name__ == '__main__':

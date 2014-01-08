@@ -27,6 +27,7 @@ import cmpy.orderlygen.pyicdfa as pyidcdfa
 from .util_general import deltatime_format
 from .util_general import read_evidence_file
 from .util_general import read_machines_file
+from .util_general import read_probabilities_file
 from .util_general import read_sample_dir
 from .util_general import write_evidence_file
 from .util_general import write_probabilities_file
@@ -576,30 +577,25 @@ def sample_machines(dbdir, inferemdir, modelprobs, num_sample):
     summary.append("  - subdir : {}\n".format(inferdir))
     summary.append("  - samples: {}\n".format(sampledir))
 
-#    # open the model probablities dict
-#    fname = os.path.join(inferdir, modelprobs)
-#    if os.path.exists(fname):
-#        summary.append("* Loading {}\n\n".format(fname))
-#        f = open(fname, 'r')
-#        modelprob_dict = pickle.load(f)
-#        f.close()
-#    else:
-#        raise Exception("File {} does not exist.".format(fname))
-#
-#    # intialize dictionary sampler
-#    file_sampler = DictionarySampler(modelprob_dict)
-#
-#    # find number of processes possible on machine
-#    numCPUs = cpu_count()
-#    summary.append("* Starting pool with {} processes\n".format(numCPUs))
-#
-#    # start a pool with this number of processes
-#    pool = Pool(processes=numCPUs)
-#    
-    # start inference...
+    # open the model probablities dict
+    fname = os.path.join(inferdir, modelprobs)
+    if os.path.exists(fname):
+        summary.append("* Loading {}\n\n".format(fname))
+        modelprob_dict = read_probabilities_file(fname)
+    else:
+        raise Exception("File {} does not exist.".format(fname))
+
+    # intialize dictionary sampler
+    file_sampler = DictionarySampler(modelprob_dict)
+
+    # start sampling...
     script_start = datetime.datetime.now()
-    summary.append(" -- start time   : {}\n".format(script_start))
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
     
+    # create list of sample numbers
+    sample_nums = [n for n in range(1, num_sample+1)]
+
 #    # define iterator fuction for sample number
 #    def iter_samplenum(sample_num):
 #        for n in range(sample_num):
@@ -632,10 +628,13 @@ def sample_machines(dbdir, inferemdir, modelprobs, num_sample):
 #    pool.close()
 #    pool.join()
 
+    # end processing...
     script_end = datetime.datetime.now()
-    summary.append(" -- end time     : {}\n".format(script_end))
-    time_diff = script_end - script_start
-    summary.append(" -- compute time : {}\n".format(str(time_diff)))
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
 
     summary_str = ''.join(summary)
 

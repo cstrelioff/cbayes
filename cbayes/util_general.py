@@ -259,6 +259,44 @@ def read_machines_file(db):
     
     return machines
 
+def read_probabilities_file(filename):
+    """Read a file containing the machine/model probabilities.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the probabilities file -- complete relative path
+
+    Returns
+    -------
+    probabilities : dict
+        A dictionary of model probabilties
+
+    """
+    # open file
+    f = open(filename, 'r')
+    probs_raw = f.readlines()
+    f.close()
+
+    # process and return
+    headerline = True
+    probabilities = {}
+    for line in probs_raw:
+        if line.startswith('#'):
+            pass
+        else:
+            if headerline:
+                # hit header row, next row real data
+                headerline = False
+            else:
+                line = line.strip()
+                em_name, prob = line.split(',')
+
+                # save machine probs to dict
+                probabilities[em_name] = float(prob)
+
+    return probabilities
+
 def read_sample_dir(db_dir, sample_dir):
     """Read sample files from given directory.
     

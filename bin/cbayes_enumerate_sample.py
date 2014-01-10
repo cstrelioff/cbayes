@@ -16,6 +16,7 @@ import cmpy.inference.bayesianem as bayesem
 
 from cbayes import check_positive_float
 from cbayes import check_sr_tuple
+from cbayes import read_datafile
 from cbayes import sample_machines
 
 def report_args(args):
@@ -38,6 +39,10 @@ def report_args(args):
             ">> {:s}\n".format(args.model_probabilities))
     arg_list.append("-ns : Number of samples to create "
             ">> {:d}\n".format(args.number_samples))
+    arg_list.append("--this_is_prior : "
+           "is this the prior? >> {:s}\n".format(str(args.this_is_prior)))
+    arg_list.append("-nprocs : Number of simultaneous processes to run "
+            ">> {:d}\n".format(args.nprocs))
     
     arg_str = ''.join(arg_list)
 
@@ -75,6 +80,15 @@ def create_parser():
             type = int,
             required = True
             )
+    parser.add_argument('--this_is_prior',
+            help = 'indicate this is sampling from prior',
+            action = 'store_true',
+            required = False
+            )
+    parser.add_argument('-nprocs',
+            help = 'number of simultaneous processes to run',
+            type = int,
+            default = 4)
     
     # do the parsing
     args = parser.parse_args()
@@ -93,10 +107,24 @@ def main():
     print arg_str
 
     # do the serious computing...
-    summary_str = sample_machines(args.database_directory,
-                                  args.inferem_directory,
-                                  args.model_probabilities,
-                                  args.number_samples)
+    if args.this_is_prior:
+        # sampling from prior -- send None as data
+        summary_str = sample_machines(args.database_directory,
+                                      args.inferem_directory,
+                                      args.model_probabilities,
+                                      args.number_samples,
+                                      None,
+                                      args.nprocs)
+    else:
+        # read data
+        data = read_datafile(os.path.join(args.database_directory, 'datafile'))
+        # send data for sampling from posterior
+        summary_str = sample_machines(args.database_directory,
+                                      args.inferem_directory,
+                                      args.model_probabilities,
+                                      args.number_samples,
+                                      data,
+                                      args.nprocs)
     
     print summary_str
 

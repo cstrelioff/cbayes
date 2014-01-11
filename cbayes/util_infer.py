@@ -8,7 +8,6 @@ from __future__ import absolute_import
 from __future__ import division
 
 import numpy
-#from multiprocessing import Pool, cpu_count
 import multiprocessing
 import itertools
 import datetime
@@ -31,6 +30,88 @@ from .util_general import read_probabilities_file
 from .util_general import read_sample_dir
 from .util_general import write_evidence_file
 from .util_general import write_probabilities_file
+
+def calculate_probabilities(dbdir, inferemdir, beta, penalty):
+    """A function to calculate the probabilities for a file containing
+    machine/model evidence values.
+
+    Parameters
+    ----------
+    dbdir : str
+        Base directory for the database (directory).
+    inferemdir : str
+        Sub-directory for log_evidence file.
+    beta : float
+        Strength of exponential penalty.
+    penalty : str
+        Penalty can be for: num_states or num_edges.
+    
+    Returns
+    -------
+    (summary_str, model_probabilities) : (str, dict)
+        A summary of function operations and a dictionary containing model
+        probabilities.
+
+    """
+    summary = []
+
+    # location of inferEM instances
+    inferdir = os.path.join(dbdir, inferemdir) 
+
+    # add to summary list
+    summary.append("* using DB: {}\n".format(dbdir))
+    summary.append("  - subdir: {}\n\n".format(inferdir))
+    
+    # start processing...
+    script_start = datetime.datetime.now()
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
+
+    # open evidence dictionary from disk
+    evidence_dict = read_evidence_file(inferdir)
+    
+    # process log evidence terms
+    log_evidence_total = log(0)
+    log_evidence = {}
+    for mname, minfo in evidence_dict.items():
+        # find penalty type and amount
+        if penalty == 'num_states':
+            penalty_term = minfo['nodes']
+        elif penalty == 'num_edges':
+            penalty_term = minfo['edges']
+
+        log_evidence[mname] = minfo['log_evidence'] - beta*penalty_term
+        log_evidence_total = logaddexp(log_evidence_total,log_evidence[mname])
+    
+    # calculate probabilities
+    model_probabilities = {}
+    for em in log_evidence.keys():
+        # divide log_evidence by normalization
+        temp_log_prob = -log_evidence_total + log_evidence[em]
+        
+        # calculate probablirt
+        model_probabilities[em] = math.exp(temp_log_prob)
+    
+    # check for existing output file before doing work
+    ftemp = "probabilities_beta-{:f}_penalty-{:s}".format(beta, penalty)
+    fname = os.path.join(inferdir, ftemp)
+    if os.path.exists(fname):
+        raise Exception("\nOutput file {} exists!\n".format(fname))
+
+    # save probabilities to file
+    write_probabilities_file(model_probabilities, fname)
+
+    # end processing...
+    script_end = datetime.datetime.now()
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
+
+    summary_str = ''.join(summary)
+
+    return (summary_str, model_probabilities)
 
 def create_model_string(model):
     """Create a string representation of model for writing to file."""
@@ -347,6 +428,60 @@ def create_sample_summary_file(db_dir, sample_dir):
 
     return summary_str
 
+
+def create_sample_machine_file(sample_num, sampler, sampledir, data):
+    """A map function for mutiprocessing to consider sampling of machines.
+    
+    Parameters
+    ----------
+    sample_num : int
+        The sample number -- used for naming output files uniquely.
+    sampler : DictionarySampler
+        An instance of the DictionarySampler class.
+    sampledir : str
+        Path to output directory for sampled machines.
+
+    """
+    import cmpy
+    import cmpy.orderlygen.pyicdfa as pyidcdfa
+    import cmpy.inference.bayesianem as bayesem
+
+    # sample a model name
+    sample_mname = sampler()
+    
+    # create filename for sampled model name
+    sample_file = ''.join(['inferEM_', sample_mname, '.pickle'])
+
+    # - number of states
+    n = int(sample_mname.split('_')[0][1:])
+    # - alphabet size
+    k =  int(sample_mname.split('_')[1][1:])
+    # - id
+    id =  int(sample_mname.split('_')[2][2:])
+
+    # get machine topology
+    machine = pyidcdfa.int_to_machine(id, n, k)
+    # set name, with proper ID - n states, k symbols
+    mname = "n{}_k{}_id{}".format(n, k, id)
+    machine.set_name(mname)
+
+    # generate inferEM instance
+    inferem_instance = bayesem.InferEM(machine, data)
+
+    # sample machine (also returns start node, not needed)
+    _, em_sample = inferem_instance.generate_sample()
+    
+    # create file name
+    fname = "sample{:05d}.pickle".format(sample_num)
+    
+    # write to file
+    f = open(os.path.join(sampledir,fname), 'w')
+    pickle.dump(em_sample, f)
+    f.close()
+
+    return sample_num
+
+
 def machine_log_evidence(machine, data):
     """A function for getting the log evidence for a single model topology and
     data set.  If None is passed for data, get values for prior.
@@ -375,403 +510,6 @@ def machine_log_evidence(machine, data):
                                 'edges': len(machine.edges())})
     
     return model_info
-
-#def sample_map(sample_num, args):
-#    """A map function for mutiprocessing to consider sampling of machines.
-#    
-#    Parameters
-#    ----------
-#    sample_num : int
-#        The sample number -- used for naming output files uniquely.
-#    args :
-#        Used to pass sampler and outdir.
-#
-#    """
-#    data = args[0]
-#    sampler = args[1]
-#    inputdir = args[2]
-#    outdir = args[3]
-#
-#
-#    # sample a modelname
-#    sample_mname = sampler()
-#    
-#    # create filename for sampled model name
-#    sample_file = ''.join(['inferEM_', sample_mname, '.pickle'])
-#    inferem_file = os.path.join(inputdir, sample_file)
-#
-#    # if exists, load.  otherwise create
-#    if os.path.exists(inferem_file):
-#        # pickled inferEM exists
-#        f = open(inferem_file, 'r')
-#        inferem_instance = pickle.load(f)
-#        f.close()
-#    else:
-#        # pickled inferEM does not exist, create
-#        # - number of states
-#        n = int(sample_mname.split('_')[0][1:])
-#        # - alphabet size
-#        k =  int(sample_mname.split('_')[1][1:])
-#        # - id
-#        id =  int(sample_mname.split('_')[2][2:])
-#
-#        # get machine topology
-#        machine = pyidcdfa.int_to_machine(id, n, k)
-#        # set name, with proper ID - n states, k symbols
-#        mname = "n{}_k{}_id{}".format(n, k, id)
-#        machine.set_name(mname)
-#
-#        # generate inferEM instance
-#        inferem_instance = bayesem.InferEM(machine, data)
-#
-#    # sample machine (also returns start node, not needed)
-#    _, em_sample = inferem_instance.generate_sample()
-#    
-#    # create file name
-#    fname = "sample{:05d}.pickle".format(sample_num)
-#    
-#    # write to file
-#    f = open(os.path.join(outdir,fname), 'w')
-#    
-#    pickle.dump(em_sample, f)
-#    f.close()
-#
-#    return sample_num
-#
-#def sample_map_star(a_b):
-#    """Convert `sample_map_star([1,2,3])` to `sample_map(1,2,3)` call."""
-#    
-#    return sample_map(*a_b)
-
-def calculate_probabilities(dbdir, inferemdir, beta, penalty):
-    """A function to calculate the probabilities for a file containing
-    machine/model evidence values.
-
-    Parameters
-    ----------
-    dbdir : str
-        Base directory for the database (directory).
-    inferemdir : str
-        Sub-directory for log_evidence file.
-    beta : float
-        Strength of exponential penalty.
-    penalty : str
-        Penalty can be for: num_states or num_edges.
-    
-    Returns
-    -------
-    (summary_str, model_probabilities) : (str, dict)
-        A summary of function operations and a dictionary containing model
-        probabilities.
-
-    """
-    summary = []
-
-    # location of inferEM instances
-    inferdir = os.path.join(dbdir, inferemdir) 
-
-    # add to summary list
-    summary.append("* using DB: {}\n".format(dbdir))
-    summary.append("  - subdir: {}\n\n".format(inferdir))
-    
-    # start processing...
-    script_start = datetime.datetime.now()
-    script_start_str = script_start.strftime("%H:%M:%S %D")
-    summary.append(" -- start time   : {}\n".format(script_start_str))
-
-    # open evidence dictionary from disk
-    evidence_dict = read_evidence_file(inferdir)
-    
-    # process log evidence terms
-    log_evidence_total = log(0)
-    log_evidence = {}
-    for mname, minfo in evidence_dict.items():
-        # find penalty type and amount
-        if penalty == 'num_states':
-            penalty_term = minfo['nodes']
-        elif penalty == 'num_edges':
-            penalty_term = minfo['edges']
-
-        log_evidence[mname] = minfo['log_evidence'] - beta*penalty_term
-        log_evidence_total = logaddexp(log_evidence_total,log_evidence[mname])
-    
-    # calculate probabilities
-    model_probabilities = {}
-    for em in log_evidence.keys():
-        # divide log_evidence by normalization
-        temp_log_prob = -log_evidence_total + log_evidence[em]
-        
-        # calculate probablirt
-        model_probabilities[em] = math.exp(temp_log_prob)
-    
-    # check for existing output file before doing work
-    ftemp = "probabilities_beta-{:f}_penalty-{:s}".format(beta, penalty)
-    fname = os.path.join(inferdir, ftemp)
-    if os.path.exists(fname):
-        raise Exception("\nOutput file {} exists!\n".format(fname))
-
-    # save probabilities to file
-    write_probabilities_file(model_probabilities, fname)
-
-    # end processing...
-    script_end = datetime.datetime.now()
-    script_end_str = script_end.strftime("%H:%M:%S %D")
-    summary.append(" -- end time     : {}\n".format(script_end_str))
-    time_diff = script_end-script_start
-    time_diff_str = deltatime_format(time_diff)
-    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
-
-    summary_str = ''.join(summary)
-
-    return (summary_str, model_probabilities)
-
-def sample_machines(dbdir, inferemdir, modelprobs, num_sample):
-    """A function to generate machine samples from the prior or posterior.
-
-    Parameters
-    ----------
-    dbdir : str
-        Base directory for the database (directory).
-    inferemdir : str
-        Sub-directory for pickled InferEM instances to evaluate.
-    modelprobs : file name
-        File name for a pickled dictionary that gives probabilities to use for
-        sampling.
-    num_sample : int
-        The number of machines to sample.
-    
-    Returns
-    -------
-    summary_str : str
-        A string with computation and timing information.
-
-    """
-    from cmpy.inference.bayesianem.util import DictionarySampler
-
-    # initialize list for summary
-    summary = []
-
-    # location of inferEM instances
-    inferdir = os.path.join(dbdir, inferemdir) 
-
-    # extract information from model probabilities file name
-    mp_temp = modelprobs.split('_')
-    mp_beta = mp_temp[1]
-    mp_penalty = '_'.join([mp_temp[2], mp_temp[3].split('.')[0]])
-
-    # create output directory for samples
-    sampledir_name = ''.join(["samples_", 
-        inferemdir.split('_')[1],
-        "_{}".format(mp_beta),
-        "_{}".format(mp_penalty)]
-        )
-    sampledir = os.path.join(dbdir, sampledir_name)
-    if os.path.exists(sampledir):
-        raise Exception("Output directory {} exists.".format(sampledir))
-    else:
-        os.mkdir(sampledir)
-        summary.append("*Making directory: {}\n".format(sampledir))
-
-    # add to summary list
-    summary.append("* using DB: {}\n".format(dbdir))
-    summary.append("  - subdir : {}\n".format(inferdir))
-    summary.append("  - samples: {}\n".format(sampledir))
-
-    # open the model probablities dict
-    fname = os.path.join(inferdir, modelprobs)
-    if os.path.exists(fname):
-        summary.append("* Loading {}\n\n".format(fname))
-        modelprob_dict = read_probabilities_file(fname)
-    else:
-        raise Exception("File {} does not exist.".format(fname))
-
-    # intialize dictionary sampler
-    file_sampler = DictionarySampler(modelprob_dict)
-
-    # start sampling...
-    script_start = datetime.datetime.now()
-    script_start_str = script_start.strftime("%H:%M:%S %D")
-    summary.append(" -- start time   : {}\n".format(script_start_str))
-    
-    # create list of sample numbers
-    sample_nums = [n for n in range(1, num_sample+1)]
-
-#    # define iterator fuction for sample number
-#    def iter_samplenum(sample_num):
-#        for n in range(sample_num):
-#            yield n
-#    
-#    # create instance of iter
-#    iter_snum = iter_samplenum(num_sample)
-#    
-#    #
-#    # use imap with some manipulation to take multiple arguments
-#    #  http://stackoverflow.com/questions/5442910/
-#    #         python-multiprocessing-pool-map-for-multiple-arguments
-#    #
-#    # limit chunksize to 1000
-#    csize = min(1000, num_sample/numCPUs)
-#    if prior:
-#        # this is prior, pass data=None
-#        args = [None, file_sampler, inferdir, sampledir]
-#    else:
-#        # posterior, pass real data
-#        args = [data, file_sampler, inferdir, sampledir]
-#
-#    for snum in pool.imap(sample_map_star, 
-#                          itertools.izip(iter_snum,
-#                                         itertools.repeat(args)), 
-#                          chunksize=csize):
-#        # do nothing
-#        pass
-#    
-#    pool.close()
-#    pool.join()
-
-    # end processing...
-    script_end = datetime.datetime.now()
-    script_end_str = script_end.strftime("%H:%M:%S %D")
-    summary.append(" -- end time     : {}\n".format(script_end_str))
-    time_diff = script_end-script_start
-    time_diff_str = deltatime_format(time_diff)
-    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
-
-    summary_str = ''.join(summary)
-
-    return summary_str
-
-#def sample_db(data, dbdir, inferemdir, modelprobs, num_sample, prior=False):
-#    """A function to generate samples from the prior or posterior over model
-#    topologies.
-#
-#    Parameters
-#    ----------
-#    data : list
-#        The data used for inference.
-#    dbdir : str
-#        Base directory for the database (directory).
-#    inferemdir : str
-#        Sub-directory for pickled InferEM instances to evaluate.
-#    modelprobs : file name
-#        File name for a pickled dictionary that gives probabilities to use for
-#        sampling.
-#    num_sample : int
-#        The number of machines to sample.
-#    prior : bool
-#        Indicate this is sampling from prior -- ignore data.
-#    
-#    Returns
-#    -------
-#
-#    """
-#    from cmpy.inference.bayesianem.util import DictionarySampler
-#
-#    # initialize list for summary
-#    summary = []
-#
-#    # location of inferEM instances
-#    inferdir = os.path.join(dbdir, inferemdir) 
-#
-#    # check if database dir exisits
-#    if os.path.exists(dbdir):
-#        # test for inferEM directory
-#        if os.path.exists(inferdir):
-#            # okay, pass
-#            pass 
-#        else:
-#            exit('\n\n ** InferEM subdirectory not found in %s !\n' % dbdir)
-#    else:
-#        # if not, error
-#        exit('\n\n ** Database directory %s not found!\n' % dbdir)
-#
-#    # extract information from model probabilities file name
-#    mp_temp = modelprobs.split('_')
-#    mp_beta = mp_temp[1]
-#    mp_penalty = '_'.join([mp_temp[2], mp_temp[3].split('.')[0]])
-#
-#    # create output directory for samples
-#    sampledir_name = ''.join(["samples_", 
-#        inferemdir.split('_')[1],
-#        "_{}".format(mp_beta),
-#        "_{}".format(mp_penalty)]
-#        )
-#    sampledir = os.path.join(dbdir, sampledir_name)
-#    if os.path.exists(sampledir):
-#        raise Exception("Output directory {} exists.".format(sampledir))
-#        #summary.append("*Adding to directory: {}\n".format(sampledir))
-#    else:
-#        os.mkdir(sampledir)
-#        summary.append("*Making directory: {}\n".format(sampledir))
-#
-#    # add to summary list
-#    summary.append("* using DB: {}\n".format(dbdir))
-#    summary.append("  - subdir : {}\n".format(inferdir))
-#    summary.append("  - samples: {}\n".format(sampledir))
-#
-#    # open the model probablities dict
-#    fname = os.path.join(inferdir, modelprobs)
-#    if os.path.exists(fname):
-#        summary.append("* Loading {}\n\n".format(fname))
-#        f = open(fname, 'r')
-#        modelprob_dict = pickle.load(f)
-#        f.close()
-#    else:
-#        raise Exception("File {} does not exist.".format(fname))
-#
-#    # intialize dictionary sampler
-#    file_sampler = DictionarySampler(modelprob_dict)
-#
-#    # find number of processes possible on machine
-#    numCPUs = cpu_count()
-#    summary.append("* Starting pool with {} processes\n".format(numCPUs))
-#
-#    # start a pool with this number of processes
-#    pool = Pool(processes=numCPUs)
-#    
-#    # start inference...
-#    script_start = datetime.datetime.now()
-#    summary.append(" -- start time   : {}\n".format(script_start))
-#    
-#    # define iterator fuction for sample number
-#    def iter_samplenum(sample_num):
-#        for n in range(sample_num):
-#            yield n
-#    
-#    # create instance of iter
-#    iter_snum = iter_samplenum(num_sample)
-#    
-#    #
-#    # use imap with some manipulation to take multiple arguments
-#    #  http://stackoverflow.com/questions/5442910/
-#    #         python-multiprocessing-pool-map-for-multiple-arguments
-#    #
-#    # limit chunksize to 1000
-#    csize = min(1000, num_sample/numCPUs)
-#    if prior:
-#        # this is prior, pass data=None
-#        args = [None, file_sampler, inferdir, sampledir]
-#    else:
-#        # posterior, pass real data
-#        args = [data, file_sampler, inferdir, sampledir]
-#
-#    for snum in pool.imap(sample_map_star, 
-#                          itertools.izip(iter_snum,
-#                                         itertools.repeat(args)), 
-#                          chunksize=csize):
-#        # do nothing
-#        pass
-#    
-#    pool.close()
-#    pool.join()
-#
-#    script_end = datetime.datetime.now()
-#    summary.append(" -- end time     : {}\n".format(script_end))
-#    time_diff = script_end - script_start
-#    summary.append(" -- compute time : {}\n".format(str(time_diff)))
-#
-#    summary_str = ''.join(summary)
-#
-#    return summary_str
 
 def mp_machine_evidence(machines, data, nprocs):
     """Multiprocessing control for create prior log evidence file."""
@@ -859,3 +597,168 @@ def mp_model_strings(models, nprocs):
 
     return resultdict
 
+def mp_sample_models(sampledir, sample_nums, sampler, data, nprocs):
+    """Multiprocessing control for create machines file."""
+
+    def mp_worker(sample_nums, sampler, sampledir, data):
+        """Produce a set of sameple eMs or uHMMs with the desired set of sample
+        numbers."""
+
+        import cmpy
+        import cmpy.orderlygen.pyicdfa as pyidcdfa
+        import cmpy.inference.bayesianem as bayesem
+        
+        # create a local cache for InferEM instances
+        inferem_cache = {}
+
+        # run through allocated sample numbers for this process
+        for sn in sample_nums:
+            # sample a model name
+            sample_mname = sampler()
+            
+            if inferem_cache.has_key(sample_mname):
+                # already processes, use existing InfereM instance
+                inferem_instance = inferem_cache[sample_mname]
+            else:
+                # create new InferEM instance
+                # - number of states
+                n = int(sample_mname.split('_')[0][1:])
+                # - alphabet size
+                k =  int(sample_mname.split('_')[1][1:])
+                # - id
+                id =  int(sample_mname.split('_')[2][2:])
+
+                # get machine topology
+                machine = pyidcdfa.int_to_machine(id, n, k)
+                # set name, with proper ID - n states, k symbols
+                mname = "n{}_k{}_id{}".format(n, k, id)
+                machine.set_name(mname)
+
+                # generate inferEM instance
+                inferem_instance = bayesem.InferEM(machine, data)
+
+                # cache for later use
+                inferem_cache[sample_mname] = inferem_instance
+
+            # sample machine (also returns start node, not needed)
+            _, em_sample = inferem_instance.generate_sample()
+            
+            # create file name
+            fname = "sample{:05d}.pickle".format(sn)
+            
+            # write to file
+            f = open(os.path.join(sampledir,fname), 'w')
+            pickle.dump(em_sample, f)
+            f.close()
+
+    # Each process will get 'chunksize' number of sample to do
+    chunksize = int(math.ceil(len(sample_nums) / float(nprocs)))
+    procs = []
+
+    for i in range(nprocs):
+        p = multiprocessing.Process(
+                target=mp_worker,
+                args=(sample_nums[chunksize * i:chunksize * (i + 1)],
+                      sampler,
+                      sampledir,
+                      data))
+
+        procs.append(p)
+        p.start()
+    
+    # Wait for all worker processes to finish
+    for p in procs:
+        p.join()
+
+    return True
+
+def sample_machines(dbdir, inferemdir, modelprobs, num_sample, data, nprocs):
+    """A function to generate machine samples from the prior or posterior.
+
+    Parameters
+    ----------
+    dbdir : str
+        Base directory for the database (directory).
+    inferemdir : str
+        Sub-directory for pickled InferEM instances to evaluate.
+    modelprobs : file name
+        File name for a pickled dictionary that gives probabilities to use for
+        sampling.
+    num_sample : int
+        The number of machines to sample.
+    data : list, None
+        Data in a list, or None if prior.
+    nprocs : int
+        Number of simultaneous processes to run.
+
+    Returns
+    -------
+    summary_str : str
+        A string with computation and timing information.
+
+    """
+    from cmpy.inference.bayesianem.util import DictionarySampler
+
+    # initialize list for summary
+    summary = []
+
+    # location of inferEM instances
+    inferdir = os.path.join(dbdir, inferemdir) 
+
+    # extract information from model probabilities file name
+    mp_temp = modelprobs.split('_')
+    mp_beta = mp_temp[1]
+    mp_penalty = '_'.join([mp_temp[2], mp_temp[3].split('.')[0]])
+
+    # create output directory for samples
+    sampledir_name = ''.join(["samples_", 
+        inferemdir.split('_')[1],
+        "_{}".format(mp_beta),
+        "_{}".format(mp_penalty)]
+        )
+    sampledir = os.path.join(dbdir, sampledir_name)
+    if os.path.exists(sampledir):
+        raise Exception("Output directory {} exists.".format(sampledir))
+    else:
+        os.mkdir(sampledir)
+        summary.append("*Making directory: {}\n".format(sampledir))
+
+    # add to summary list
+    summary.append("* using DB: {}\n".format(dbdir))
+    summary.append("  - subdir : {}\n".format(inferdir))
+    summary.append("  - samples: {}\n".format(sampledir))
+
+    # open the model probablities dict
+    fname = os.path.join(inferdir, modelprobs)
+    if os.path.exists(fname):
+        summary.append("* Loading {}\n\n".format(fname))
+        modelprob_dict = read_probabilities_file(fname)
+    else:
+        raise Exception("File {} does not exist.".format(fname))
+
+    # intialize dictionary sampler
+    machine_name_sampler = DictionarySampler(modelprob_dict)
+
+    # start sampling...
+    script_start = datetime.datetime.now()
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
+    
+    # create list of sample numbers
+    sample_nums = [n for n in range(1, num_sample+1)]
+        
+    # do the serious computing...
+    mp_sample_models(sampledir, sample_nums, machine_name_sampler,
+                     data, nprocs)
+
+    # end processing...
+    script_end = datetime.datetime.now()
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
+
+    summary_str = ''.join(summary)
+
+    return summary_str

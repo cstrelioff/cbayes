@@ -18,7 +18,6 @@ import cmpy.inference.bayesianem as bayesem
 
 from cbayes import check_positive_float
 from cbayes import create_sample_summary_file
-from cbayes import sample_db
 
 class InferDBException(Exception):
     pass

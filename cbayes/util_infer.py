@@ -349,9 +349,10 @@ def create_sample_summary_file(db_dir, sample_dir):
 
     """
     # start processing...
-    script_start = datetime.datetime.now()
     summary = []
-    summary.append(" -- start time   : {}\n".format(script_start))
+    script_start = datetime.datetime.now()
+    script_start_str = script_start.strftime("%H:%M:%S %D")
+    summary.append(" -- start time   : {}\n".format(script_start_str))
 
     # get file 
     sample_files = read_sample_dir(db_dir, sample_dir)
@@ -420,14 +421,15 @@ def create_sample_summary_file(db_dir, sample_dir):
     os.chdir(startdir)
     
     script_end = datetime.datetime.now()
-    summary.append(" -- end time     : {}\n".format(script_end))
-    time_diff = str(script_end-script_start)
-    summary.append(" -- compute time : {}\n\n".format(time_diff))
+    script_end_str = script_end.strftime("%H:%M:%S %D")
+    summary.append(" -- end time     : {}\n".format(script_end_str))
+    time_diff = script_end-script_start
+    time_diff_str = deltatime_format(time_diff)
+    summary.append(" -- compute time : {}\n\n".format(time_diff_str))
 
     summary_str = ''.join(summary)
 
     return summary_str
-
 
 def create_sample_machine_file(sample_num, sampler, sampledir, data):
     """A map function for mutiprocessing to consider sampling of machines.

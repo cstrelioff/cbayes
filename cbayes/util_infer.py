@@ -1,8 +1,5 @@
 """util_infer.py
 
-Christopher C. Strelioff
-chris.strelioff@gmail.com
-
 """
 from __future__ import absolute_import
 from __future__ import division

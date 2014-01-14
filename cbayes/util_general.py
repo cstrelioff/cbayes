@@ -1,8 +1,5 @@
 """util_general.py
 
-Christopher C. Strelioff
-chris.stelioff@gmail.com
-
 """
 import os
 import argparse

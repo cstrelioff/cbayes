@@ -164,8 +164,19 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
     script_start_str = script_start.strftime("%H:%M:%S %D")
     summary = []
     summary.append(" -- start time   : {}\n".format(script_start_str))
-    
+
+    # open file and write header information
     f = open(filename, 'w')
+    f.write("# candidate machines\n")
+    f.write("# - alphabet size: {}\n".format(A))
+    f.write("# - number of states: {}\n".format(N_list))
+    if em_min == 'none':
+        topologies = 'all uHMMS'
+    else:
+        topologies = 'only topological eMs'
+    f.write("# - topologies: {}\n".format(topologies))
+
+    # column header
     out_str = "{},{},{},{},{}\n".format('name', 'HMM type',
                                         'states', 'edges', 'topology')
     f.write(out_str)
@@ -174,10 +185,12 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
     model_iter = bayesem.LibraryGenerator(A, N_list, em_min)
 
     # create list of models
+    model_counter = 0
     model_strings = {}
     models = []
     for m in model_iter:
         models.append(m)
+        model_counter += 1
 
         if len(models) == nmax:
             # farm out models enumerated thus far
@@ -193,7 +206,7 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
         f.write(model_strings[m_name])
     
     f.close()
-     
+
     # end processing...
     script_end = datetime.datetime.now()
     script_end_str = script_end.strftime("%H:%M:%S %D")
@@ -201,6 +214,9 @@ def create_machine_file(filename, A, N_list, em_min, nmax, nprocs):
     time_diff = script_end-script_start
     time_diff_str = deltatime_format(time_diff)
     summary.append(" -- compute time : {}\n\n".format(time_diff_str))
+
+    # write out number of topologies
+    summary.append("\n** Number of topologies: {}\n\n".format(model_counter))
 
     summary_str = ''.join(summary)
 

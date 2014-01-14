@@ -331,7 +331,7 @@ def create_machine_prior_file(dbdir, nprocs):
 
     return summary_str
 
-def create_sample_summary_file(db_dir, sample_dir):
+def create_sample_summary_file(db_dir, sample_dir, nprocs):
     """Create a file with properties of sample machines from prior or
     posterior.
 
@@ -370,50 +370,18 @@ def create_sample_summary_file(db_dir, sample_dir):
             "Number_Edges",
             "Number_States\n"
             ]        
-    fout.write(' '.join(temp))
+    fout.write(','.join(temp))
 
     # change dir
     startdir = os.getcwd()
     os.chdir(os.path.join(db_dir, sample_dir))
 
-    ## cycle through files
-    for f in sample_files:
-        # load pickled machine
-        f_em = open(f, 'r')
-        em = pickle.load(f_em)
-        f_em.close()
-        
-        # state entropy, Cmu if epsilon-machine
-        try:
-            cmu_est = em.statistical_complexity()
-        except:
-            cmu_est = em.stationary_entropy()
+    # send to multiprocessing routine
+    sample_info = mp_process_samples(sample_files, nprocs)
 
-        # entropy rate
-        hmu_est = em.entropy_rate()
-        
-        # number of nodes, edges
-        num_state = len(em.nodes())
-        num_edges = len(em.edges())
-
-        # get model type
-        recurr_em = 0
-        if type(em) == cmpy.machines.RecurrentEpsilonMachine:
-            recurr_em = 1
-
-        # get model id/name
-        em_id = str(em).split(':')[-1].strip()
-
-        temp = ["{fn:s}".format(fn=f),
-                "{mn:s}".format(mn=em_id),
-                "{id:d}".format(id=recurr_em),
-                "{cmu:.15e}".format(cmu=cmu_est),
-                "{hmu:.15e}".format(hmu=hmu_est),
-                "{ne}".format(ne=num_edges),
-                "{ns}\n".format(ns=num_state)
-            ]
-        
-        fout.write(' '.join(temp))
+    # write output to file
+    for sfile in sorted(sample_info.keys()):
+        fout.write(','.join(sample_info[sfile]))
 
     fout.close()
 
@@ -482,7 +450,6 @@ def create_sample_machine_file(sample_num, sampler, sampledir, data):
     f.close()
 
     return sample_num
-
 
 def machine_log_evidence(machine, data):
     """A function for getting the log evidence for a single model topology and
@@ -589,6 +556,80 @@ def mp_model_strings(models, nprocs):
     
     # Collect all results into a single result dict. We know how many dicts
     # with results to expect.
+    resultdict = {}
+    for i in range(nprocs):
+        resultdict.update(out_q.get())
+
+    # Wait for all worker processes to finish
+    for p in procs:
+        p.join()
+
+    return resultdict
+
+def mp_process_samples(sample_files, nprocs):
+    """Multiprocessing control for analyzing directory of sample machines."""
+
+    def mp_worker(focus_sample_files, out_q):
+        """Load sample machine and record various properties."""
+        import cmpy
+        outdict = {}
+
+        ## cycle through files
+        for f in focus_sample_files:
+            # load pickled machine
+            f_em = open(f, 'r')
+            em = pickle.load(f_em)
+            f_em.close()
+            
+            # state entropy, Cmu if epsilon-machine
+            try:
+                cmu_est = em.statistical_complexity()
+            except:
+                cmu_est = em.stationary_entropy()
+
+            # entropy rate
+            hmu_est = em.entropy_rate()
+            
+            # number of nodes, edges
+            num_state = len(em.nodes())
+            num_edges = len(em.edges())
+
+            # get model type
+            recurr_em = 0
+            if type(em) == cmpy.machines.RecurrentEpsilonMachine:
+                recurr_em = 1
+
+            # get model id/name
+            em_id = str(em).split(':')[-1].strip()
+
+            temp = ["{fn:s}".format(fn=f),
+                    "{mn:s}".format(mn=em_id),
+                    "{id:d}".format(id=recurr_em),
+                    "{cmu:.15e}".format(cmu=cmu_est),
+                    "{hmu:.15e}".format(hmu=hmu_est),
+                    "{ne}".format(ne=num_edges),
+                    "{ns}\n".format(ns=num_state)
+                ]
+        
+            outdict[f] = temp
+        
+        out_q.put(outdict)
+    
+    # Each process will get 'chunksize' number of sample to do
+    out_q = multiprocessing.Queue()
+    chunksize = int(math.ceil(len(sample_files) / float(nprocs)))
+    procs = []
+
+    for i in range(nprocs):
+        p = multiprocessing.Process(
+                target=mp_worker,
+                args=(sample_files[chunksize * i:chunksize * (i + 1)],
+                      out_q))
+
+        procs.append(p)
+        p.start()
+    
+    # Collect all results into a single result dict
     resultdict = {}
     for i in range(nprocs):
         resultdict.update(out_q.get())

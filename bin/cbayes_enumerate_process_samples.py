@@ -38,6 +38,8 @@ def report_args(args):
             ">> {:s}\n".format(args.database_directory))
     arg_list.append("-sdir : Sample sub-directory "
             ">> {:s}\n".format(args.sample_directory))
+    arg_list.append("-nprocs : Number of simultaneous processes to run "
+            ">> {:d}\n".format(args.nprocs))
     
     arg_str = ''.join(arg_list)
 
@@ -66,6 +68,10 @@ def create_parser():
             type = str,
             required = True
             )
+    parser.add_argument('-nprocs',
+            help = 'number of simultaneous processes to run',
+            type = int,
+            default = 4)
     
     # do the parsing
     args = parser.parse_args()
@@ -91,7 +97,8 @@ def main():
     
     # create sample summary file
     summary_str = create_sample_summary_file(args.database_directory,
-                                             args.sample_directory)
+                                             args.sample_directory,
+                                             args.nprocs)
 
 
     ## print compute time summary

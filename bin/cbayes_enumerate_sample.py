@@ -118,12 +118,18 @@ def main():
     else:
         # read data
         data = read_datafile(os.path.join(args.database_directory, 'datafile'))
+
+        # extract correct data limits from inferEM directory name
+        lower_limit, upper_limit = args.inferem_directory.split('_')[1].split('-')
+        ll = int(lower_limit)
+        ul = int(upper_limit)
+
         # send data for sampling from posterior
         summary_str = sample_machines(args.database_directory,
                                       args.inferem_directory,
                                       args.model_probabilities,
                                       args.number_samples,
-                                      data,
+                                      data[ll:ul],
                                       args.nprocs)
     
     print summary_str

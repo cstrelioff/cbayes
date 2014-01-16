@@ -104,7 +104,7 @@ def report_args(args):
     arg_list.append("--include_prior : "
            "include analysis of prior? >> {:s}\n".format(str(args.include_prior)))
     arg_list.append("--beta  : Penalty size >> {:f}\n".format(args.beta))
-    arg_list.append("-penalty : Type of penalty "
+    arg_list.append("-p  : Type of penalty "
             ">> {:s}\n".format(args.penalty))
     arg_list.append("-segs : Number of segments of the dataseries to consider >> "
                 "{:d}\n".format(args.number_segments))

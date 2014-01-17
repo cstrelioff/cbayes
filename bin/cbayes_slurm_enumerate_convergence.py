@@ -119,72 +119,72 @@ def write_scripts(args):
 
     """
     # create filename and open
-    jobname ="enum_conv_{:s}".format(args.file.split('.')[0])
+    jobname ="enumerate_slurm_convergence_{:s}".format(args.file.split('.')[0])
     fname = ''.join([jobname, ".sh"])
     f = open(fname, 'w')
 
     ## write header
+    jname_short = "convergence_analysis_{:s}".format(args.file.split('.')[0])
     header_list = []
     header_list.append("#!/bin/bash -l\n")
     header_list.append("# NOTE the -l flag!\n\n")
     header_list.append("# Name of the job\n")
-    header_list.append("#SBATCH -J {:s}\n\n".format(jobname))
+    header_list.append("#SBATCH -J {:s}\n\n".format(jname_short))
     header_list.append("# Standard out and Standard Error output files\n")
-    header_list.append("#SBATCH -o {:s}-%j.output\n".format(jobname))
-    header_list.append("#SBATCH -e {:s}-%j.output\n\n".format(jobname))
+    header_list.append("#SBATCH -o {:s}-%j.output\n".format(jname_short))
+    header_list.append("#SBATCH -e {:s}-%j.output\n\n".format(jname_short))
     header_list.append("## commands to execute\n\n")
     header_list.append("# keep track of total compute time\n")
     header_list.append("begin=\"$(date +%s)\"\n\n")
     f.write(''.join(header_list))
 
-    ## add prior to script - analyze machines, prior
+    ## calculate evidence terms for prior
     prior_list = []
     prior_list.append("##\n")
     prior_list.append("## PRIOR\n")
     prior_list.append("echo \">> Add PRIOR models to DB: `date`\"\n")
-    # single line
-    prior_list.append("srun -l cbayes_enumerate_PriorAddToDB.py")
+    # --single line
+    prior_list.append("srun -l cbayes_enumerate_prior.py")
     prior_list.append(" -db {}".format(args.database_directory))
-    prior_list.append(" -a {} ".format(args.alphabet_size))
-    prior_list.append(" -n {}".format(args.number_of_states))
-    if args.topological_eMs:
-        prior_list.append(" --topological_eMs\n")
-    else:
-        prior_list.append("\n")
+    prior_list.append(" -nprocs {}".format(args.nprocs))
+    prior_list.append("\n")
     prior_list.append("echo\n")
+    ## calculate model prior probabilities
     prior_list.append("echo \">> Calculate PRIOR model "
-            "probabilities: `date`\"\n")
-    
-    # single line - calculate probability for machines using prior
-    prior_list.append("srun -l cbayes_enumerate_CalcProbs.py")
+                      "probabilities: `date`\"\n")
+    # --single line
+    prior_list.append("srun -l cbayes_enumerate_probabilities.py")
     prior_list.append(" -db {}".format(args.database_directory))
     prior_list.append(" -idir inferEM_0-0") 
     prior_list.append(" --beta {}".format(args.beta)) 
     prior_list.append(" -p {}\n".format(args.penalty))
     prior_list.append("echo\n")
+    ## sample machines from prior
     prior_list.append("echo \">> Sample PRIOR machines: `date`\"\n")
-    
-    # single line - sample machines using prior
-    prior_list.append("srun -l cbayes_enumerate_Sample.py")
-    prior_list.append(" -f {}".format(args.file))
+    # ---single line
+    prior_list.append("srun -l cbayes_enumerate_sample.py")
     prior_list.append(" -db {}".format(args.database_directory))
     prior_list.append(" -idir inferEM_0-0")
-    prior_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
-    prior_list.append("_penalty-{}.pickle".format(args.penalty))
+    prior_list.append(" -mp probabilities_beta-{:.6f}".format(args.beta))
+    prior_list.append("_penalty-{}".format(args.penalty))
     prior_list.append(" -ns {}".format(args.number_samples))
-    prior_list.append(" --this_is_prior\n")
+    prior_list.append(" --this_is_prior")
+    prior_list.append(" -nprocs {}\n".format(args.nprocs))
     prior_list.append("echo\n")
+    ## process the sampled machines
     prior_list.append("echo \">> Process sampled PRIOR machines: `date`\"\n")
-
-    # single line - process sampled machines
-    prior_list.append("srun -l cbayes_enumerate_ProcessSamples.py")
+    # --single line
+    prior_list.append("srun -l cbayes_enumerate_process_samples.py")
     prior_list.append(" -db {}".format(args.database_directory))
     prior_list.append(" -sdir samples_0-0")
     prior_list.append("_beta-{:.6f}".format(args.beta))
-    prior_list.append("_penalty-{}\n".format(args.penalty))
+    prior_list.append("_penalty-{}".format(args.penalty))
+    prior_list.append(" -nprocs {}\n".format(args.nprocs))
     prior_list.append("echo\n")
+
+    ## write to file
     f.write(''.join(prior_list))
-    
+
     # read data to get data length
     data = read_datafile(args.file)
     data_len = len(data)
@@ -201,63 +201,53 @@ def write_scripts(args):
 
     ## iterate through subsample length, add to script
     for ssl in data_length_list:
-        ssl_list = []
-        ## Add models to DB for this subsample length
-        ssl_list.append("##\n")
-        ssl_list.append("## SUBSAMPLE, LENGTH: {}\n".format(ssl))
-        ssl_list.append("echo \">> Add models, subsample")
-        ssl_list.append(" length {}, to DB: `date`\"\n".format(ssl))
-        # single line
-        ssl_list.append("srun -l cbayes_enumerate_AddToDB.py")
-        ssl_list.append(" -f {}".format(args.file))
-        ssl_list.append(" -db {}".format(args.database_directory))
-        ssl_list.append(" -a {} ".format(args.alphabet_size))
-        ssl_list.append(" -n {}".format(args.number_of_states))
-        ssl_list.append(" -sr 0,{}".format(ssl))
-        if args.topological_eMs:
-            ssl_list.append(" --topological_eMs\n")
-        else:
-            ssl_list.append("\n")
+        posterior_list = []
+        ## Add models to DB for this subsample
+        posterior_list.append("##\n")
+        posterior_list.append("echo \"SEGMENT : 0 -- {}\"\n".format(ssl))
 
-        ## calculate model probabilities for the subsample length
-        ssl_list.append("echo\n")
-        ssl_list.append("echo \">> Calculate model "
-                "probabilities: `date`\"\n")
-        # single line
-        ssl_list.append("srun -l cbayes_enumerate_CalcProbs.py")
-        ssl_list.append(" -db {}".format(args.database_directory))
-        ssl_list.append(" -idir inferEM_0-{}".format(ssl)) 
-        ssl_list.append(" --beta {}".format(args.beta)) 
-        ssl_list.append(" -p {}\n".format(args.penalty))
+        # --single line
+        posterior_list.append("srun -l cbayes_enumerate_posterior.py")
+        posterior_list.append(" -f {}".format(args.file))
+        posterior_list.append(" -db {}".format(args.database_directory))
+        posterior_list.append(" -sr 0,{}".format(ssl))
+        posterior_list.append(" -nprocs {}".format(args.nprocs))
+        posterior_list.append("\n")
+        posterior_list.append("echo\n")
+        ## calculate model prior probabilities
+        posterior_list.append("echo \">> Calculate POSTERIOR model "
+                              "probabilities: `date`\"\n")
+        # --single line
+        posterior_list.append("srun -l cbayes_enumerate_probabilities.py")
+        posterior_list.append(" -db {}".format(args.database_directory))
+        posterior_list.append(" -idir inferEM_0-{}".format(ssl)) 
+        posterior_list.append(" --beta {}".format(args.beta)) 
+        posterior_list.append(" -p {}\n".format(args.penalty))
+        posterior_list.append("echo\n")
+        ## sample machines from prior
+        posterior_list.append("echo \">> Sample POSTERIOR machines: `date`\"\n")
+        # ---single line
+        posterior_list.append("srun -l cbayes_enumerate_sample.py")
+        posterior_list.append(" -db {}".format(args.database_directory))
+        posterior_list.append(" -idir inferEM_0-{}".format(ssl))
+        posterior_list.append(" -mp probabilities_beta-{:.6f}".format(args.beta))
+        posterior_list.append("_penalty-{}".format(args.penalty))
+        posterior_list.append(" -ns {}".format(args.number_samples))
+        posterior_list.append(" -nprocs {}\n".format(args.nprocs))
+        posterior_list.append("echo\n")
+        ## process the sampled machines
+        posterior_list.append("echo \">> Process sampled POSTERIOR machines: `date`\"\n")
+        # --single line
+        posterior_list.append("srun -l cbayes_enumerate_process_samples.py")
+        posterior_list.append(" -db {}".format(args.database_directory))
+        posterior_list.append(" -sdir samples_0-{}".format(ssl))
+        posterior_list.append("_beta-{:.6f}".format(args.beta))
+        posterior_list.append("_penalty-{}".format(args.penalty))
+        posterior_list.append(" -nprocs {}\n".format(args.nprocs))
+        posterior_list.append("echo\n")
 
-        ## sample machines for this subsample length
-        ssl_list.append("echo\n")
-        ssl_list.append("echo \">> Sample machines: `date`\"\n")
-        
-        # single line -- sample machines
-        ssl_list.append("srun -l cbayes_enumerate_Sample.py")
-        ssl_list.append(" -f {}".format(args.file))
-        ssl_list.append(" -sr 0,{}".format(ssl))
-        ssl_list.append(" -db {}".format(args.database_directory))
-        ssl_list.append(" -idir inferEM_0-{}".format(ssl))
-        ssl_list.append(" -mp modelprobs_beta-{:.6f}".format(args.beta))
-        ssl_list.append("_penalty-{}.pickle".format(args.penalty))
-        ssl_list.append(" -ns {}\n".format(args.number_samples))
-        
-        ## process sampled machines
-        ssl_list.append("echo\n")
-        ssl_list.append("echo \">> Process sampled machines: `date`\"\n")
-        
-        # single line - process sampled machines
-        ssl_list.append("srun -l cbayes_enumerate_ProcessSamples.py")
-        ssl_list.append(" -db {}".format(args.database_directory))
-        ssl_list.append(" -sdir samples_0-{}".format(ssl))
-        ssl_list.append("_beta-{:.6f}".format(args.beta))
-        ssl_list.append("_penalty-{}\n".format(args.penalty))
-        ssl_list.append("echo\n")
-
-        # write to file for this subsample length
-        f.write(''.join(ssl_list))
+        ## write to file
+        f.write(''.join(posterior_list))
 
     # calculate total compute time
     f.write("# calculate total compute time\n")

@@ -11,6 +11,7 @@ import os
 import argparse
 import numpy
 
+from cbayes import check_dir_doesnot_exist
 from cbayes import check_positive_int
 from cbayes import check_positive_float
 from cbayes import check_probability
@@ -290,6 +291,12 @@ def main():
     # reports args
     summary_str = report_args(args)
     print summary_str
+
+    # check for existence of data and db/machines files
+    check_dir_doesnot_exist(args.file)
+    check_dir_doesnot_exist(os.path.join(args.database_directory, 'machines'))
+    # copy data file to database_directory/datafile
+    shutil.copy(args.file, os.path.join(args.database_directory, 'datafile'))
 
     # write scripts
     write_scripts(args)

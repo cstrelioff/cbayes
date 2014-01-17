@@ -8,6 +8,7 @@ by considering subsegments, using the single data file, of increasing length.
 
 """
 import os
+import shutil
 import argparse
 import numpy
 
@@ -43,15 +44,6 @@ def create_parser():
             type = str,
             required = True
             )
-    parser.add_argument('-a', '--alphabet_size',
-            help = 'number of letters in alphabet',
-            type = check_positive_int,
-            default = 2,
-            required = True)
-    parser.add_argument('-n', '--number_of_states',
-            help = 'a comma sep list of state numbers, eg 1,2,3',
-            type = str,
-            required = True)
     parser.add_argument('--beta',
             help = 'beta used for model comparison, penalty for num of states',
             type = check_positive_float,
@@ -76,11 +68,10 @@ def create_parser():
             type = check_positive_int,
             required = True
             )
-    parser.add_argument('--topological_eMs',
-            help = 'include only topological eM structures',
-            action = 'store_true',
-            required = False
-            )
+    parser.add_argument('-nprocs',
+            help = 'number of simultaneous processes to run',
+            type = int,
+            default = 4)
 
     # do the parsing
     args = parser.parse_args()
@@ -102,18 +93,15 @@ def report_args(args):
     arg_list.append("-f  : Data file >> {:s}\n".format(args.file))
     arg_list.append("-db : Database directory "
             ">> {:s}\n".format(args.database_directory))
-    arg_list.append("-a  : Alphabet size >> {:d}\n".format(args.alphabet_size))
-    arg_list.append("-n  : Number of states "
-            ">> {:s}\n".format(args.number_of_states))
     arg_list.append("--beta  : Penalty size >> {:f}\n".format(args.beta))
     arg_list.append("-penalty : Type of penalty "
             ">> {:s}\n".format(args.penalty))
-    arg_list.append("--topological_eMs : "
-           "topological eMs only? >> {:s}\n".format(str(args.topological_eMs)))
     arg_list.append("-sst : Subsample type >> "
                 "{:s}\n".format(args.subsample_type))
     arg_list.append("-ns : Number of machines to sample "
             ">> {:d}\n".format(args.number_samples))
+    arg_list.append("-nprocs : Number of simultaneous processes to run "
+            ">> {:d}\n".format(args.nprocs))
     
     arg_str = ''.join(arg_list)
 

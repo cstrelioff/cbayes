@@ -656,7 +656,7 @@ def mp_process_samples(sample_files, nprocs):
 def mp_sample_models(sampledir, sample_nums, sampler, data, nprocs):
     """Multiprocessing control for create machines file."""
 
-    def mp_worker(sample_nums, sampler, sampledir, data):
+    def mp_worker(sample_nums, sampler, sampledir, data, out_q):
         """Produce a set of sameple eMs or uHMMs with the desired set of sample
         numbers."""
 
@@ -668,6 +668,7 @@ def mp_sample_models(sampledir, sample_nums, sampler, data, nprocs):
         inferem_cache = {}
 
         # run through allocated sample numbers for this process
+        outdict = {}
         for sn in sample_nums:
             # sample a model name
             sample_mname = sampler()
@@ -696,18 +697,50 @@ def mp_sample_models(sampledir, sample_nums, sampler, data, nprocs):
                 # cache for later use
                 inferem_cache[sample_mname] = inferem_instance
 
-            # sample machine (also returns start node, not needed)
-            _, em_sample = inferem_instance.generate_sample()
+            # sample machine (also returns start node)
+            startnode, em_sample = inferem_instance.generate_sample()
             
-            # create file name
-            fname = "sample{:05d}.pickle".format(sn)
-            
-            # write to file
-            f = open(os.path.join(sampledir,fname), 'w')
-            pickle.dump(em_sample, f)
-            f.close()
+            # state entropy, Cmu if epsilon-machine
+            try:
+                cmu_est = em_sample.statistical_complexity()
+            except:
+                cmu_est = em_sample.stationary_entropy()
 
-    # Each process will get 'chunksize' number of sample to do
+            # entropy rate
+            hmu_est = em_sample.entropy_rate()
+            
+            # number of nodes, edges
+            num_state = len(em_sample.nodes())
+            num_edges = len(em_sample.edges())
+
+            # get model type
+            recurr_em = 'uHMM'
+            if type(em_sample) == cmpy.machines.RecurrentEpsilonMachine:
+                recurr_em = 'topEM'
+
+            # get model id/name
+            em_id = str(em_sample)
+
+            # get str form for sample
+            em_str = em_sample.to_string().replace('\n','')
+
+            temp = ["{:d}".format(sn),
+                    "{:s}".format(sample_mname),
+                    "{:s}".format(recurr_em),
+                    "{cmu:.15e}".format(cmu=cmu_est),
+                    "{hmu:.15e}".format(hmu=hmu_est),
+                    "{ne}".format(ne=num_edges),
+                    "{ns}".format(ns=num_state),
+                    "{}".format(startnode),
+                    "{top}\n".format(top=em_str)
+                ]
+        
+            outdict[sn] = temp
+        
+        out_q.put(outdict)
+
+    # Each process will get 'chunksize' number of samples to do
+    out_q = multiprocessing.Queue()
     chunksize = int(math.ceil(len(sample_nums) / float(nprocs)))
     procs = []
 
@@ -717,16 +750,23 @@ def mp_sample_models(sampledir, sample_nums, sampler, data, nprocs):
                 args=(sample_nums[chunksize * i:chunksize * (i + 1)],
                       sampler,
                       sampledir,
-                      data))
+                      data,
+                      out_q))
 
         procs.append(p)
         p.start()
+    
+    # Collect all results into a single result dict. We know how many dicts
+    # with results to expect.
+    resultdict = {}
+    for i in range(nprocs):
+        resultdict.update(out_q.get())
     
     # Wait for all worker processes to finish
     for p in procs:
         p.join()
 
-    return True
+    return resultdict
 
 def sample_machines(dbdir, inferemdir, modelprobs, num_sample, data, nprocs):
     """A function to generate machine samples from the prior or posterior.
@@ -804,8 +844,27 @@ def sample_machines(dbdir, inferemdir, modelprobs, num_sample, data, nprocs):
     sample_nums = [n for n in range(1, num_sample+1)]
         
     # do the serious computing...
-    mp_sample_models(sampledir, sample_nums, machine_name_sampler,
-                     data, nprocs)
+    samples = mp_sample_models(sampledir, sample_nums, machine_name_sampler,
+                               data, nprocs)
+
+    # write samples to single file
+    f = open(os.path.join(sampledir, 'samples'), 'w')
+    # file header
+    hdr = ["{}".format('Sample Number'),
+           "{}".format('Topology'),
+           "{}".format('Type'),
+           "{}".format('Cmu'),
+           "{}".format('hmu'),
+           "{}".format('Edges'),
+           "{}".format('States'),
+           "{}".format('Start Node'),
+           "{}\n".format('Machine Str')]
+    f.write("{}".format(','.join(hdr)))
+   
+    # samples
+    for sn in samples:
+        f.write("{}".format(','.join(samples[sn])))
+    f.close()
 
     # end processing...
     script_end = datetime.datetime.now()

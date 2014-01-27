@@ -171,16 +171,6 @@ def write_scripts(args):
     prior_list.append(" --this_is_prior")
     prior_list.append(" -nprocs {}\n".format(args.nprocs))
     prior_list.append("echo\n")
-    ## process the sampled machines
-    prior_list.append("echo \">> Process sampled PRIOR machines: `date`\"\n")
-    # --single line
-    prior_list.append("srun -l cbayes_enumerate_process_samples.py")
-    prior_list.append(" -db {}".format(args.database_directory))
-    prior_list.append(" -sdir samples_0-0")
-    prior_list.append("_beta-{:.6f}".format(args.beta))
-    prior_list.append("_penalty-{}".format(args.penalty))
-    prior_list.append(" -nprocs {}\n".format(args.nprocs))
-    prior_list.append("echo\n")
 
     ## write to file
     f.write(''.join(prior_list))
@@ -233,16 +223,6 @@ def write_scripts(args):
         posterior_list.append(" -mp probabilities_beta-{:.6f}".format(args.beta))
         posterior_list.append("_penalty-{}".format(args.penalty))
         posterior_list.append(" -ns {}".format(args.number_samples))
-        posterior_list.append(" -nprocs {}\n".format(args.nprocs))
-        posterior_list.append("echo\n")
-        ## process the sampled machines
-        posterior_list.append("echo \">> Process sampled POSTERIOR machines: `date`\"\n")
-        # --single line
-        posterior_list.append("srun -l cbayes_enumerate_process_samples.py")
-        posterior_list.append(" -db {}".format(args.database_directory))
-        posterior_list.append(" -sdir samples_0-{}".format(ssl))
-        posterior_list.append("_beta-{:.6f}".format(args.beta))
-        posterior_list.append("_penalty-{}".format(args.penalty))
         posterior_list.append(" -nprocs {}\n".format(args.nprocs))
         posterior_list.append("echo\n")
 

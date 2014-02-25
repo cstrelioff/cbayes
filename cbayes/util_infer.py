@@ -483,14 +483,21 @@ def machine_log_evidence(machine, data):
         `nodes` and `edges` for the machine.
     
     """
-    # pass to InferEM
-    infer_temp = bayesem.InferEM(machine,data)
+    # check if data == None; if so is prior and log_evidence = 0.0 (log 1.0)
+    if data == None:
+        # extract machine name and other information
+        model_info = (str(machine),{'log_evidence': 0.0,
+                                    'nodes': len(machine.nodes()),
+                                    'edges': len(machine.edges())})
+    else:
+        # pass to InferEM
+        infer_temp = bayesem.InferEM(machine,data)
 
-    # extract machine name and other information
-    model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
-                                'nodes': len(machine.nodes()),
-                                'edges': len(machine.edges())})
-    
+        # extract machine name and other information
+        model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
+                                    'nodes': len(machine.nodes()),
+                                    'edges': len(machine.edges())})
+
     return model_info
 
 def mp_machine_evidence(machines, data, nprocs):

@@ -2,8 +2,8 @@
 
 """cbayes_enumerate_posterior.py
 
-This script focuses on the posterior over models, calculating the posterior
-probability for all model topologies in the `machines` file using the specified
+This script focuses on the posterior over models, calculating the posterior log
+evidence for all model topologies in the `machines` file using the specified
 data file and data range.
 
 """

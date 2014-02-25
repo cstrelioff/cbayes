@@ -4,8 +4,9 @@
 
 This script processes the output of cbayes_enumerate_prior.py or
 cbayes_enumerate_posterior.py scripts to calculate prior, or posterior,
-probabilities for each machine/model topolgy.  This script must be run before
-samples can be generated from the prior or posterior.
+probabilities for each machine/model topolgy using a specified value of beta.
+This script must be run before samples can be generated from the prior or
+posterior.
 
 """
 from __future__ import division

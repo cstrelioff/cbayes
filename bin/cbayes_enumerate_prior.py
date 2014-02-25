@@ -2,9 +2,8 @@
 
 """cbayes_enumerate_prior.py
 
-This script focuses on the prior over models instead of the posterior,
-calculating the prior probability for all model topologies in the `machines`
-file.
+This script focuses on the prior over models, calculating the prior evidence
+for all model topologies in the `machines` file.
 
 """
 from __future__ import division

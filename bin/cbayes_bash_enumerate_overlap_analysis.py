@@ -2,12 +2,13 @@
 
 """cbayes_bash_enumerate_overlap_analysis.py
 
-Create a bash script to run a sequence of `cbayes_enumerate_` scripts on a
+Creates a bash script to run a sequence of `cbayes_enumerate_` scripts on a
 specified data file.  In this case, the focus is on analysis of single data
 file as well as considering overlapping segments to test for stationary
 behavior.  In this context, stationary means that analysis of segments of the
-total data series return the same model at different points -- reflecting a
-single, static model topology is appropriate for the complete data series.
+total data series returns the same model at different points -- reflecting a
+single model topology, or set of topologies, is appropriate for describing data
+series.
 
 """
 from __future__ import division

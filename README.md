@@ -48,6 +48,31 @@ command line easy.  To get help for a script, type
 
 ### High Level Scripts ###
 
+The scripts produce a *master script* that calls each of the base scripts (see
+below) repeatedly to accomplish some larger inference goal.  Broadly speaking
+there are two types of analyses:
+
+* Convergence -- a single data series is repeatedly analyzed, starting with a
+  small segment, and increasing the segment length until the full data set is
+  used.  This analysis is helpful for looking at convergence of inference with
+  increasing data size.
+
+* Overlap -- a single data series is repeatedly analyzed, using reasonable
+  sized overlapping chunks, to test for stationary behavior.  The same model
+  topologies should probable for each segment, reflecting in-class and
+  stationary behavior.
+
+The **bash** scripts are designed to run on any Linux/Mac machine and the
+    **slurm** scripts can be used on a cluster running the
+    [slurm](https://computing.llnl.gov/linux/slurm/) resource manager.
+
+#### cbayes_bash_enumerate_convergence.py ###
+
+Create a bash script to run a sequence of `cbayes_enumerate_` scripts on a
+specified data file.  In this case, the focus is on convergence of inference
+by considering segments, using the single data file, of increasing length.
+
+
 ### Base Scripts ###
 
 These base scripts accomplish very specific tasks.  While they can be used alone,
@@ -98,5 +123,7 @@ posterior.
 
 This script generates samples from the prior, or posterior, over model
 topologies using the output a specified model probabilities file.
+
+### GA Scripts ###
 
 

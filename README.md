@@ -52,26 +52,50 @@ The scripts produce a *master script* that calls each of the base scripts (see
 below) repeatedly to accomplish some larger inference goal.  Broadly speaking
 there are two types of analyses:
 
-* Convergence -- a single data series is repeatedly analyzed, starting with a
-  small segment, and increasing the segment length until the full data set is
+* **Convergence** -- a single data series is repeatedly analyzed, starting with
+  a small segment, and increasing the segment length until the full data set is
   used.  This analysis is helpful for looking at convergence of inference with
   increasing data size.
 
-* Overlap -- a single data series is repeatedly analyzed, using reasonable
+* **Overlap** -- a single data series is repeatedly analyzed, using reasonable
   sized overlapping chunks, to test for stationary behavior.  The same model
   topologies should probable for each segment, reflecting in-class and
   stationary behavior.
 
 The **bash** scripts are designed to run on any Linux/Mac machine and the
-    **slurm** scripts can be used on a cluster running the
-    [slurm](https://computing.llnl.gov/linux/slurm/) resource manager.
+**slurm** scripts can be used on a cluster running the
+[slurm](https://computing.llnl.gov/linux/slurm/) resource manager.
 
 #### cbayes_bash_enumerate_convergence.py ###
 
-Create a bash script to run a sequence of `cbayes_enumerate_` scripts on a
+Create a **bash** script to run a sequence of `cbayes_enumerate_` scripts on a
 specified data file.  In this case, the focus is on convergence of inference
 by considering segments, using the single data file, of increasing length.
 
+#### cbayes_bash_enumerate_overlap_analysis.py ####
+
+Creates a **bash** script to run a sequence of `cbayes_enumerate_` scripts on a
+specified data file.  In this case, the focus is on analysis of single data
+file as well as considering overlapping subsegments to test for stationary
+behavior.  In this context, stationary means that analysis of segments of the
+total data series returns the same model(s) at different points -- reflecting a
+single model topology, or set of topologies, is appropriate for describing the
+data series.
+
+#### cbayes_slurm_enumerate_convergence.py ####
+
+Create a **slurm** script to run a sequence of `cbayes_enumerate_` scripts on a
+specified data file.  In this case, the focus is on convergence of inference
+by considering subsegments, using the single data file, of increasing length.
+
+#### cbayes_slurm_enumerate_overlap_analysis.py ####
+
+Create a **slurm** script to run a sequence of `cbayes_enumerate_` scripts on a
+specified data file.  In this case, the focus is on analysis of single data
+file as well as considering overlapping segments to test for stationary
+behavior.  In this context, stationary means that analysis of segments of the
+total data series return the same model at different points -- reflecting a
+single, static model topology is appropriate for the complete data series.
 
 ### Base Scripts ###
 

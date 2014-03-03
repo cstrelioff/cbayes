@@ -4,8 +4,11 @@
 import os
 import argparse
 import numpy
+
 import cmpy
+import cmpy.inference.bayesianem as bayesem
 from cmpy.machines.algorithms.mealycmech import CMechQuantities
+
 try:
     import cPickle as pickle
 except:
@@ -328,6 +331,130 @@ def read_sample_dir(db_dir, sample_dir):
     os.chdir(startdir)
 
     return sample_files
+
+def write_data(directory, file, process, length, eM):
+    """Write the data file.
+    
+    Parameters
+    ---------
+    directory: str
+        Directory to write file -- '.' is a good option.
+    file : str
+        Assumed to be name of data file, for example Even.dat.
+    process : str
+        Name of the process.
+    length : int
+        Length of the desired data series.
+    eM : RecurrentEpsilonMachine, MealyHMM
+        Machine to use for data generation.
+    
+    """
+    
+    cwd = os.getcwd()
+    out_dir = cwd
+    if directory != '.':
+        out_dir = os.path.join(cwd, directory)
+        if os.path.exists(out_dir):
+            os.chdir(out_dir)
+        else:
+            raise ProcessException("Output directory does not exist.")
+
+    f = open(file, 'w')
+
+    # header
+    f.write("# SETTINGS:\n")
+    f.write("# -f    : Output data file >> {:s}\n".format(file))
+    f.write("# -l    : Length of data series >> {:d}\n".format(length))
+    f.write("# -p    : Process >> {:s}\n".format(process))
+    f.write("# -d    : Ouput diretory >> {:s}\n".format(directory))
+    f.write('#\n')
+
+    # eM details
+    f.write('# eM \n')
+    f.write("# name: {:s}\n".format(str(eM)))
+
+    trans_str = eM.to_string()
+    trans_list = trans_str.split(';')
+    for element in trans_list:
+        element = element.strip()
+        f.write('# ' + element + '\n')
+
+    # now, data
+    eM.randomize_current_node()
+    sN = eM.get_current_node()
+    f.write("# start node: {:s}\n".format(str(sN)))
+    f.write('#\n')
+    
+    # create the data
+    data = eM.symbols(length)
+    data_str = ','.join(data)
+
+    # find the evidence for generated data
+    evidence_available = True
+    try:
+        posterior = bayesem.InferEM(eM, data)
+        log_evidence = posterior.log_evidence()
+        for beta in [0.0, 2.0, 4.0]:
+            curr_evi = log_evidence - beta*len(eM.nodes())
+            tmp= ("# log P(D|Mi)-beta*|Mi| "
+                "(beta={b:f}) = {ce:.4f}\n"
+                )
+            f.write(tmp.format(b=beta, ce=curr_evi))
+        f.write("#\n")
+    except:
+        evidence_available = False
+
+    # compare with IID
+    iid = cmpy.machines.IID(len(eM.alphabet()))
+    iid_posterior = bayesem.InferEM(iid, data)
+    iid_evidence = iid_posterior.log_evidence()
+    f.write("# log P(D|IID) (beta=0.0) = {:.4f}\n".format(iid_evidence))
+    f.write("#\n")
+
+    # write data and close file
+    f.write(data_str)
+    f.close()
+
+    # include an inference log file
+    if evidence_available:
+        flog = open(file.split('.')[0] + '.log', 'w')
+        flog.write("# Inference information for {:s}\n".format(file))
+        flog.write("Evi_True_beta_0 Evi_True_beta_2 ")
+        flog.write("Evi_True_beta_4 Evi_IID_beta_0\n")
+        flog.write("{:.2f} ".format(log_evidence))
+        flog.write("{:.2f} ".format(log_evidence - 2.*len(eM.nodes())))
+        flog.write("{:.2f} ".format(log_evidence - 4.*len(eM.nodes())))
+        flog.write("{:.2f}\n".format(iid_evidence))
+        flog.close()
+    else:
+        flog = open(file.split('.')[0] + '.log', 'w')
+        flog.write("# Inference information for {:s}\n".format(file))
+        flog.write("Evi_IID_beta_0\n")
+        flog.write("{:.2f}\n".format(iid_evidence))
+        flog.close()
+
+    # change back to entry directory
+    os.chdir(cwd)
+
+def write_em_pickle(file, eM):
+    """Write a pickle file of the generated process for later use.
+    
+    Parameters
+    ---------
+    file : str
+        Assumed to be name of data file, for example Even.dat
+    eM : RecurrentEpsilonMachine, MealyHMM
+        Machine to pickle.
+
+    """
+    try:
+        filename = file.split('.')[0]
+    except:
+        filename = file
+    
+    f = open(filename + '.pickle', 'w')
+    pickle.dump(eM, f)
+    f.close()
 
 def write_evidence_file(evidence, filename):
     """Write a file containing the machine/model evidence terms.

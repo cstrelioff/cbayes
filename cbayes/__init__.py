@@ -20,6 +20,8 @@ from .util_general import read_evidence_file
 from .util_general import read_machines_file
 from .util_general import read_probabilities_file
 from .util_general import read_sample_dir
+from .util_general import write_data
+from .util_general import write_em_pickle
 from .util_general import write_evidence_file
 from .util_general import write_probabilities_file
 

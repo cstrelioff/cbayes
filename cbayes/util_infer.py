@@ -270,6 +270,7 @@ def create_machine_posterior_file(dbdir, range, data, nprocs):
 
     # write the evidence dictionary to a file
     write_evidence_file(evidence_dict, 'log_evidence')
+    write_evidence_file(evidence_dict, 'log_evidence_top100', 100)
 
     # end processing...
     script_end = datetime.datetime.now()
@@ -328,6 +329,7 @@ def create_machine_prior_file(dbdir, nprocs):
 
     # write the evidence dictionary to a file
     write_evidence_file(evidence_dict, 'log_evidence')
+    write_evidence_file(evidence_dict, 'log_evidence_top100', 100)
     
     # end processing...
     script_end = datetime.datetime.now()
@@ -483,20 +485,13 @@ def machine_log_evidence(machine, data):
         `nodes` and `edges` for the machine.
     
     """
-    # check if data == None; if so is prior and log_evidence = 0.0 (log 1.0)
-    if data == None:
-        # extract machine name and other information
-        model_info = (str(machine),{'log_evidence': 0.0,
-                                    'nodes': len(machine.nodes()),
-                                    'edges': len(machine.edges())})
-    else:
-        # pass to InferEM
-        infer_temp = bayesem.InferEM(machine,data)
+    # pass to InferEM
+    infer_temp = bayesem.InferEM(machine,data)
 
-        # extract machine name and other information
-        model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
-                                    'nodes': len(machine.nodes()),
-                                    'edges': len(machine.edges())})
+    # extract machine name and other information
+    model_info = (str(machine),{'log_evidence': infer_temp.log_evidence(),
+                                'nodes': len(machine.nodes()),
+                                'edges': len(machine.edges())})
 
     return model_info
 

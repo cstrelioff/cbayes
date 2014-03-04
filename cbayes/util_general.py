@@ -456,7 +456,7 @@ def write_em_pickle(file, eM):
     pickle.dump(eM, f)
     f.close()
 
-def write_evidence_file(evidence, filename):
+def write_evidence_file(evidence, filename, num_machines='all'):
     """Write a file containing the machine/model evidence terms.
 
     Parameters
@@ -465,6 +465,8 @@ def write_evidence_file(evidence, filename):
         A dictionary containg the evidence data
     filename : str
         Name for output file
+    num_machines : 'all' [default], int
+        Number of machines to include and type of sorting on file output.
 
     Output
     ------
@@ -479,12 +481,35 @@ def write_evidence_file(evidence, filename):
     f.write('{},{},{},{}\n'.format('em_name', 'log_evidence',
                                    'nodes', 'edges'))
 
-    for em_name in sorted(evidence.iterkeys()):
-        em_info = evidence[em_name]
-        f.write('{},{},{},{}\n'.format(em_name,
-                                     em_info['log_evidence'],
-                                     em_info['nodes'],
-                                     em_info['edges']))
+    if num_machines == 'all':
+        for em_name in sorted(evidence.iterkeys()):
+            em_info = evidence[em_name]
+            f.write('{},{},{},{}\n'.format(em_name,
+                                         em_info['log_evidence'],
+                                         em_info['nodes'],
+                                         em_info['edges']))
+    else:
+        try:
+            number_machines = int(num_machines)
+            avail_machines = len(evidence.keys())
+            if number_machines > avail_machines:
+                number_machines = avail_machines
+        except:
+            raise Exception("\nNumber of machines requested not integer"
+                            "that makes sense!\n")
+        
+        # sort by log_evidence, then machine name
+        evi_sorted = sorted(evidence.items(),
+                key = lambda x : (x[1]['log_evidence'], x[0]),
+                reverse = True)
+
+        # write sorted (by evidence) evidence file
+        for em_name, em_info in evi_sorted[0:number_machines]:
+            f.write('{},{},{},{}\n'.format(em_name,
+                                         em_info['log_evidence'],
+                                         em_info['nodes'],
+                                         em_info['edges']))
+
     f.close()
 
 def write_probabilities_file(probabilities, filename):

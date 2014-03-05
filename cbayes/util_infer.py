@@ -97,6 +97,7 @@ def calculate_probabilities(dbdir, inferemdir, beta, penalty):
 
     # save probabilities to file
     write_probabilities_file(model_probabilities, fname)
+    write_probabilities_file(model_probabilities, fname + '_top100', 100)
 
     # end processing...
     script_end = datetime.datetime.now()

@@ -495,8 +495,8 @@ def write_evidence_file(evidence, filename, num_machines='all'):
             if number_machines > avail_machines:
                 number_machines = avail_machines
         except:
-            raise Exception("\nNumber of machines requested not integer"
-                            "that makes sense!\n")
+            raise Exception("\nNumber of machines requested not an integer"
+                            " that makes sense!\n")
         
         # sort by log_evidence, then machine name
         evi_sorted = sorted(evidence.items(),
@@ -512,7 +512,7 @@ def write_evidence_file(evidence, filename, num_machines='all'):
 
     f.close()
 
-def write_probabilities_file(probabilities, filename):
+def write_probabilities_file(probabilities, filename, num_machines='all'):
     """Write a file containing the machine/model probabilities.
 
     Parameters
@@ -521,6 +521,8 @@ def write_probabilities_file(probabilities, filename):
         A dictionary containg the probabilities for models
     filename : str
         Name for output file
+    num_machines : 'all' [default], int
+        Number of machines to include and type of sorting on file output.
 
     Output
     ------
@@ -534,7 +536,27 @@ def write_probabilities_file(probabilities, filename):
     # write header
     f.write('{},{}\n'.format('em_name', 'probability'))
 
-    for em_name in sorted(probabilities.iterkeys()):
-        f.write('{},{}\n'.format(em_name, probabilities[em_name]))
+    if num_machines == 'all':
+        for em_name in sorted(probabilities.iterkeys()):
+            f.write('{},{}\n'.format(em_name, probabilities[em_name]))
+    else:
+        try:
+            number_machines = int(num_machines)
+            avail_machines = len(probabilities.keys())
+            if number_machines > avail_machines:
+                number_machines = avail_machines
+        except:
+            raise Exception("\nNumber of machines requested not an integer"
+                            " that makes sense!\n")
+       
+        #sort_probs = sorted(probabilities, key=probabilities.get, reverse=True) 
+        # sort by probability, then machine name
+        sort_probs = sorted(probabilities.items(),
+                key = lambda x : (x[1], x[0]),
+                reverse = True)
+        
+        for em_name, em_prob in sort_probs[0:number_machines]:
+            f.write('{},{}\n'.format(em_name, em_prob))
 
     f.close()
+
